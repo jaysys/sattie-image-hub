@@ -1,13 +1,12 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Button,
   Callout,
   Card,
   Classes,
   Dialog,
-  FormGroup,
-  InputGroup,
-  MenuItem,
+  HTMLSelect,
+  Icon,
   Navbar,
   NavbarDivider,
   NavbarGroup,
@@ -16,68 +15,52 @@ import {
   Switch,
   Tag,
 } from "@blueprintjs/core";
-import type { ItemPredicate, ItemRenderer } from "@blueprintjs/select";
-import { Select } from "@blueprintjs/select";
-import { NavLink, Navigate, Route, Routes } from "react-router-dom";
-import { DataTooltip } from "./components/DataTooltip";
-import { getBootstrap, updateSettings } from "./lib/api";
-import { ApprovalsPage } from "./pages/ApprovalsPage";
-import { DashboardPage } from "./pages/DashboardPage";
-import { SettingsPage } from "./pages/SettingsPage";
-import type { DomainOption, TeamOption, WorkspaceSettings } from "./types";
+import { NavLink, Navigate, Route, Routes, useLocation } from "react-router-dom";
+import { PanelTitle } from "./components/PanelTitle";
+import { getSattieBootstrap } from "./lib/sattieApi";
+import { SattieCommandsPage } from "./pages/SattieCommandsPage";
+import { SattieDashboardPage } from "./pages/SattieDashboardPage";
+import { SattiePerformancePage } from "./pages/SattiePerformancePage";
+import { SattiePayloadMonitoringPage } from "./pages/SattiePayloadMonitoringPage";
+import { SattieSatellitesPage } from "./pages/SattieSatellitesPage";
+import { SattieScenariosPage } from "./pages/SattieScenariosPage";
+import { SattieUplinkPage } from "./pages/SattieUplinkPage";
+import type { SattieConsoleBootstrap } from "./sattie-types";
 
-const filterDomain: ItemPredicate<DomainOption> = (query, domain) => {
-  const normalizedQuery = query.toLowerCase();
-  return `${domain.label} ${domain.team} ${domain.summary}`.toLowerCase().includes(normalizedQuery);
-};
-
-const renderDomain: ItemRenderer<DomainOption> = (domain, { handleClick, handleFocus, modifiers }) => {
-  if (!modifiers.matchesPredicate) {
-    return null;
-  }
-
-  return (
-    <MenuItem
-      active={modifiers.active}
-      key={domain.id}
-      label={domain.team}
-      onClick={handleClick}
-      onFocus={handleFocus}
-      roleStructure="listoption"
-      text={domain.label}
-    />
-  );
-};
+type MockRole = "admin" | "operator" | "requestor";
 
 export function App() {
+  const location = useLocation();
   const [darkMode, setDarkMode] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [domains, setDomains] = useState<DomainOption[]>([]);
-  const [teams, setTeams] = useState<TeamOption[]>([]);
-  const [settings, setSettings] = useState<WorkspaceSettings | null>(null);
-  const [selectedDomainId, setSelectedDomainId] = useState("");
+  const [bootstrap, setBootstrap] = useState<SattieConsoleBootstrap | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [role, setRole] = useState<MockRole>(() => {
+    const savedRole = window.localStorage.getItem("simMockUserId");
+    return savedRole === "admin" || savedRole === "operator" || savedRole === "requestor"
+      ? savedRole
+      : "admin";
+  });
+  const [operationsOpen, setOperationsOpen] = useState(() => {
+    const savedState = window.localStorage.getItem("sattieOperationsOpen");
+    return savedState == null ? true : savedState === "true";
+  });
+
+  async function refreshBootstrap() {
+    try {
+      setError(null);
+      const data = await getSattieBootstrap();
+      setBootstrap(data);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Sattie bootstrap load failed");
+    }
+  }
 
   useEffect(() => {
     let cancelled = false;
 
-    getBootstrap()
-      .then((data) => {
-        if (cancelled) {
-          return;
-        }
-        setDomains(data.domains);
-        setTeams(data.teams);
-        setSettings(data.settings);
-        setSelectedDomainId(data.settings.selectedDomainId);
-      })
-      .catch((requestError) => {
-        if (cancelled) {
-          return;
-        }
-        setError(requestError instanceof Error ? requestError.message : "부트스트랩 로딩 실패");
-      })
+    refreshBootstrap()
       .finally(() => {
         if (!cancelled) {
           setLoading(false);
@@ -89,16 +72,21 @@ export function App() {
     };
   }, []);
 
-  const selectedDomain = useMemo(
-    () => domains.find((domain) => domain.id === selectedDomainId) ?? domains[0] ?? null,
-    [domains, selectedDomainId],
-  );
+  useEffect(() => {
+    window.localStorage.setItem("simMockUserId", role);
+  }, [role]);
 
-  async function handleSaveSettings(nextSettings: WorkspaceSettings) {
-    const response = await updateSettings(nextSettings);
-    setSettings(response.settings);
-    setSelectedDomainId(response.settings.selectedDomainId);
-  }
+  useEffect(() => {
+    window.localStorage.setItem("sattieOperationsOpen", String(operationsOpen));
+  }, [operationsOpen]);
+
+  const canAccessSatellites = role === "admin";
+  const canSendUplink = role !== "requestor";
+  const canRunScenarios = role !== "requestor";
+  const canManageInfra = role === "admin";
+  const operationsRoutes = ["/uplink", "/commands", "/scenarios"];
+  const operationsActive = operationsRoutes.some((route) => location.pathname.startsWith(route));
+  const canSeeOperationsGroup = canSendUplink || canRunScenarios;
 
   return (
     <div className={`app-shell ${darkMode ? Classes.DARK : ""}`}>
@@ -106,15 +94,29 @@ export function App() {
       <main className="app-frame">
         <Navbar className="topbar">
           <NavbarGroup align="left" className="topbar__brand">
-            <NavbarHeading>Palantir Blueprint Sample</NavbarHeading>
+            <NavbarHeading>
+              <span className="brand-title">
+                <Icon icon="satellite" />
+                <span>K-Sattie Image Hub</span>
+              </span>
+            </NavbarHeading>
             <NavbarDivider />
             <Tag minimal round large>
-              Command Console
+              Palantir BlueprintJS porting
             </Tag>
           </NavbarGroup>
           <NavbarGroup align="right" className="topbar__actions">
-            <Button minimal icon="notifications" />
-            <Button minimal icon="history" />
+            <Button minimal icon="satellite" />
+            <Button minimal icon="database" />
+            <HTMLSelect
+              value={role}
+              onChange={(event) => setRole(event.target.value as MockRole)}
+              options={[
+                { label: "admin", value: "admin" },
+                { label: "operator", value: "operator" },
+                { label: "requestor", value: "requestor" },
+              ]}
+            />
             <Switch
               checked={darkMode}
               label="Dark"
@@ -130,7 +132,7 @@ export function App() {
           <aside className="sidebar-stack">
             <Card className="panel panel--sidebar">
               <div className="panel__title-row">
-                <h2>Console Map</h2>
+                <PanelTitle icon="map">Console Map</PanelTitle>
                 <Tag minimal intent="primary">
                   Router
                 </Tag>
@@ -140,84 +142,159 @@ export function App() {
                   to="/dashboard"
                   className={({ isActive }) => `rail-link ${isActive ? "is-active" : ""}`}
                 >
-                  <span className="rail-link__title">Dashboard</span>
-                  <span className="rail-link__meta">실시간 관제와 활동 피드</span>
+                  <span className="rail-link__title">
+                    <Icon icon="dashboard" />
+                    <span>Dashboard</span>
+                  </span>
+                  <span className="rail-link__meta">health, KPI, baseline summary</span>
                 </NavLink>
+                {canAccessSatellites ? (
+                  <NavLink
+                    to="/satellites"
+                    className={({ isActive }) => `rail-link ${isActive ? "is-active" : ""}`}
+                  >
+                    <span className="rail-link__title">
+                      <Icon icon="satellite" />
+                      <span>Satellites</span>
+                    </span>
+                    <span className="rail-link__meta">satellite, station, requestor resources</span>
+                  </NavLink>
+                ) : null}
                 <NavLink
-                  to="/approvals"
+                  to="/performance"
                   className={({ isActive }) => `rail-link ${isActive ? "is-active" : ""}`}
                 >
-                  <span className="rail-link__title">Approvals</span>
-                  <span className="rail-link__meta">승인 큐와 담당자 할당</span>
+                  <span className="rail-link__title">
+                    <Icon icon="timeline-area-chart" />
+                    <span>Performance</span>
+                  </span>
+                  <span className="rail-link__meta">satellite imaging performance statistics</span>
                 </NavLink>
                 <NavLink
-                  to="/settings"
+                  to="/payload-monitoring"
                   className={({ isActive }) => `rail-link ${isActive ? "is-active" : ""}`}
                 >
-                  <span className="rail-link__title">Settings</span>
-                  <span className="rail-link__meta">도메인 기본값과 콘솔 설정</span>
+                  <span className="rail-link__title">
+                    <Icon icon="data-connection" />
+                    <span>Payload Monitoring</span>
+                  </span>
+                  <span className="rail-link__meta">external payload monitoring and api call logs</span>
                 </NavLink>
+                {canSeeOperationsGroup ? (
+                  <div className={`rail-group ${operationsOpen ? "is-open" : ""} ${operationsActive ? "is-active" : ""}`}>
+                    <button
+                      type="button"
+                      className="rail-group__trigger"
+                      onClick={() => setOperationsOpen((current) => !current)}
+                    >
+                      <span className="rail-group__copy">
+                        <span className="rail-link__title">
+                          <Icon icon="pulse" />
+                          <span>Self Diagnostics</span>
+                        </span>
+                        <span className="rail-link__meta">
+                          uplink, command monitor, scenario regression
+                        </span>
+                      </span>
+                      <span className="rail-group__chevron">{operationsOpen ? "▾" : "▸"}</span>
+                    </button>
+                    {operationsOpen ? (
+                      <div className="rail-group__items">
+                        {canSendUplink ? (
+                          <NavLink
+                            to="/uplink"
+                            className={({ isActive }) => `rail-link rail-link--child ${isActive ? "is-active" : ""}`}
+                          >
+                            <span className="rail-link__title">
+                              <Icon icon="send-to-graph" />
+                              <span>Send A Uplink</span>
+                            </span>
+                            <span className="rail-link__meta">tasking form and presets</span>
+                          </NavLink>
+                        ) : null}
+                        {canRunScenarios ? (
+                          <NavLink
+                            to="/scenarios"
+                            className={({ isActive }) => `rail-link rail-link--child ${isActive ? "is-active" : ""}`}
+                          >
+                            <span className="rail-link__title">
+                              <Icon icon="projects" />
+                              <span>Multi Payload</span>
+                            </span>
+                            <span className="rail-link__meta">scenario catalog and regression</span>
+                          </NavLink>
+                        ) : null}
+                        <NavLink
+                          to="/commands"
+                          className={({ isActive }) => `rail-link rail-link--child ${isActive ? "is-active" : ""}`}
+                        >
+                          <span className="rail-link__title">
+                            <Icon icon="search-template" />
+                            <span>Commands Monitor</span>
+                          </span>
+                          <span className="rail-link__meta">state polling and downloads</span>
+                        </NavLink>
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
               </nav>
             </Card>
 
-            <DataTooltip content="SQLite `domains`, `teams`, `settings` 테이블을 `/api/bootstrap`으로 읽어온 필터 패널입니다.">
-              <Card className="panel panel--sidebar">
-                <div className="panel__title-row">
-                  <h2>Workspace Filters</h2>
-                  <Tag minimal intent="success">
-                    API
-                  </Tag>
+            <Card className="panel panel--sidebar">
+              <div className="panel__title-row">
+                <PanelTitle icon="time">Runtime Snapshot</PanelTitle>
+                <Tag minimal intent="success">
+                  API
+                </Tag>
+              </div>
+              {loading ? (
+                <div className="panel-loading">
+                  <Spinner size={22} />
+                  <span>bootstrap loading</span>
                 </div>
-                {loading ? (
-                  <div className="panel-loading">
-                    <Spinner size={22} />
-                    <span>필터 로딩 중</span>
+              ) : error ? (
+                <Callout icon="error" intent="danger">
+                  {error}
+                </Callout>
+              ) : bootstrap ? (
+                <>
+                  <div className="tag-row">
+                    <Tag minimal>React</Tag>
+                    <Tag minimal>Blueprint</Tag>
+                    <Tag minimal>Express</Tag>
+                    <Tag minimal>SQLite</Tag>
+                    <Tag minimal intent="primary">
+                      {role}
+                    </Tag>
                   </div>
-                ) : error ? (
-                  <Callout icon="error" intent="danger">
-                    {error}
-                  </Callout>
-                ) : selectedDomain != null ? (
-                  <>
-                    <FormGroup label="기준 도메인" labelFor="domain-select-button">
-                      <Select<DomainOption>
-                        items={domains}
-                        itemPredicate={filterDomain}
-                        itemRenderer={renderDomain}
-                        noResults={
-                          <MenuItem disabled text="No results." roleStructure="listoption" />
-                        }
-                        onItemSelect={(domain) => setSelectedDomainId(domain.id)}
-                      >
-                        <Button
-                          id="domain-select-button"
-                          alignText="start"
-                          endIcon="caret-down"
-                          fill
-                          icon="database"
-                          text={`${selectedDomain.label} · ${selectedDomain.team}`}
-                        />
-                      </Select>
-                    </FormGroup>
-                    <FormGroup label="빠른 검색" labelFor="workspace-search">
-                      <InputGroup
-                        id="workspace-search"
-                        leftIcon="search"
-                        placeholder="서비스, 팀, 큐 검색"
-                      />
-                    </FormGroup>
-                    <div className="tag-row">
-                      <Tag minimal>SQLite</Tag>
-                      <Tag minimal>Express API</Tag>
-                      <Tag minimal>Blueprint</Tag>
+                  <div className="console-facts">
+                    <div className="console-facts__item">
+                      <span>Service</span>
+                      <strong>{bootstrap.health.service}</strong>
                     </div>
-                    <Callout icon="data-connection" intent="primary">
-                      현재 좌측 필터와 각 페이지 데이터는 `sqlite3` 샘플 DB를 읽습니다.
+                    <div className="console-facts__item">
+                      <span>DB</span>
+                      <strong>{bootstrap.health.sqliteVersion}</strong>
+                    </div>
+                    <div className="console-facts__item">
+                      <span>Commands</span>
+                      <strong>{bootstrap.health.counts.commands}</strong>
+                    </div>
+                  </div>
+                  <Callout icon="data-connection" intent="primary">
+                    현재 셸은 `/api/sattie/*` 기준 타입과 라우트 구조로 전환됐다.
+                  </Callout>
+                  {!canAccessSatellites ? (
+                    <Callout icon="lock" intent="warning">
+                      {role === "operator"
+                        ? "Operator 모드: Satellites 메뉴와 관리 액션은 비활성화된다."
+                        : "Requestor 모드: Dashboard / Performance / Commands 읽기 흐름만 사용한다."}
                     </Callout>
-                  </>
-                ) : null}
-              </Card>
-            </DataTooltip>
+                  ) : null}
+                </>
+              ) : null}
+            </Card>
           </aside>
 
           <section className="content-stack">
@@ -234,29 +311,74 @@ export function App() {
                   {error}
                 </Callout>
               </Card>
-            ) : selectedDomain != null && settings != null ? (
+            ) : bootstrap ? (
               <Routes>
-                <Route path="/" element={<Navigate to="/dashboard" replace />} />
-                <Route path="/dashboard" element={<DashboardPage selectedDomain={selectedDomain} />} />
+                <Route path="/" element={<Navigate to="/performance" replace />} />
                 <Route
-                  path="/approvals"
+                  path="/dashboard"
+                  element={<SattieDashboardPage bootstrap={bootstrap} darkMode={darkMode} />}
+                />
+                <Route
+                  path="/satellites"
                   element={
-                    <ApprovalsPage
-                      selectedDomain={selectedDomain}
-                      teams={teams}
-                      defaultReviewerId={settings.defaultOwnerTeamId}
+                    canAccessSatellites ? (
+                      <SattieSatellitesPage
+                        satellites={bootstrap.satellites}
+                        groundStations={bootstrap.groundStations}
+                        requestors={bootstrap.requestors}
+                        canManage={canManageInfra}
+                        onDataChange={refreshBootstrap}
+                      />
+                    ) : (
+                      <Navigate to="/dashboard" replace />
+                    )
+                  }
+                />
+                <Route
+                  path="/performance"
+                  element={<SattiePerformancePage satellites={bootstrap.satellites} />}
+                />
+                <Route path="/payload-monitoring" element={<SattiePayloadMonitoringPage />} />
+                <Route
+                  path="/uplink"
+                  element={
+                    canSendUplink ? (
+                      <SattieUplinkPage
+                        satellites={bootstrap.satellites}
+                        groundStations={bootstrap.groundStations}
+                        requestors={bootstrap.requestors}
+                        canSend={canSendUplink}
+                        onCommandCreated={refreshBootstrap}
+                      />
+                    ) : (
+                      <Navigate to="/commands" replace />
+                    )
+                  }
+                />
+                <Route
+                  path="/commands"
+                  element={
+                    <SattieCommandsPage
+                      satellites={bootstrap.satellites}
+                      onDataChange={refreshBootstrap}
                     />
                   }
                 />
                 <Route
-                  path="/settings"
+                  path="/scenarios"
                   element={
-                    <SettingsPage
-                      domains={domains}
-                      teams={teams}
-                      settings={settings}
-                      onSaveSettings={handleSaveSettings}
-                    />
+                    canRunScenarios ? (
+                      <SattieScenariosPage
+                        scenarios={bootstrap.scenarios}
+                        satellites={bootstrap.satellites}
+                        groundStations={bootstrap.groundStations}
+                        requestors={bootstrap.requestors}
+                        canRun={canRunScenarios}
+                        onDataChange={refreshBootstrap}
+                      />
+                    ) : (
+                      <Navigate to="/commands" replace />
+                    )
                   }
                 />
               </Routes>
@@ -269,13 +391,13 @@ export function App() {
         icon="dashboard"
         isOpen={dialogOpen}
         onClose={() => setDialogOpen(false)}
-        title="이번 확장에서 추가한 것"
+        title="현재 포팅 상태"
       >
         <div className={Classes.DIALOG_BODY}>
           <ol className="dialog-list">
-            <li>프론트가 목데이터 대신 SQLite 기반 Express API를 읽도록 전환했습니다.</li>
-            <li>설정 저장과 승인 담당자 배정이 DB 업데이트를 통과하도록 구성했습니다.</li>
-            <li>Vite 개발 서버는 `/api`를 백엔드 포트 `3001`로 프록시합니다.</li>
+            <li>`/api/sattie/*` 백엔드와 연결되는 프런트 타입과 API 계층을 추가했다.</li>
+            <li>라우트는 Dashboard, Satellites, Performance, Uplink, Commands, Scenarios로 재편했다.</li>
+            <li>mock role mode(`admin`, `operator`, `requestor`)가 헤더와 메뉴 접근에 반영된다.</li>
           </ol>
         </div>
         <div className={Classes.DIALOG_FOOTER}>

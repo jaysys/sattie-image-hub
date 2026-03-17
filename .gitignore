@@ -1,7 +1,27 @@
 node_modules
 dist
 .DS_Store
+
+# Runtime data and local process artifacts
+.run
+*.log
+*.pid
 server/data
+data-sattie/.run
+data-sattie/data
+
+# Local secrets and machine-specific config
+.env
+.env.*
+
+# Prevent nested repository metadata from being committed
+data-sattie/.git
+data-sattie/.git.embedded
+data-sattie/venv
+data-sattie/**/__pycache__
+*.pyc
+
+# Generated TypeScript/Vite artifacts
 *.tsbuildinfo
 vite.config.js
 vite.config.d.ts

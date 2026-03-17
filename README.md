@@ -1,15 +1,29 @@
-# Palantir Blueprint Sample
+# K-Sattie Image Hub
 
-React + TypeScript + Vite 프론트와 Express + SQLite API 서버를 같이 붙인 Blueprint 샘플입니다.
+React + TypeScript + Vite 프런트와 Express + SQLite API 서버를 단일 포트로 붙인 Palantir BlueprintJS 기반 운영 콘솔입니다.
 
 ## 실행
+
+원샷 스크립트:
+
+```bash
+./one-shot-setup.sh
+./one-shot-startup.sh
+./one-shot-stop.sh
+```
+
+- `one-shot-setup.sh`: 의존성 설치와 프로덕션 빌드를 수행합니다.
+- `one-shot-startup.sh`: `127.0.0.1:6005`에서 서버를 기동하고 `.run/*.log`에 로그를 남깁니다.
+- `one-shot-stop.sh`: 기동한 서버와 `6005` 포트 리스너를 종료합니다.
+
+개발 모드:
 
 ```bash
 npm install
 npm run dev
 ```
 
-`npm run dev`는 Vite와 API 서버를 함께 띄웁니다. 브라우저에서 표시된 로컬 주소를 열면 됩니다.
+`npm run dev`는 `127.0.0.1:6005`에서 프런트와 API를 함께 띄웁니다.
 
 종료:
 
@@ -17,7 +31,7 @@ npm run dev
 npm run stop
 ```
 
-`npm run stop`는 개발 서버 포트 `5173`과 API 서버 포트 `3001`을 함께 정리합니다.
+`npm run stop`는 기존 개발용 정리 스크립트입니다. 현재 단일 서버 운영에는 `./one-shot-stop.sh` 사용을 권장합니다.
 
 ## 프런트엔드 구성
 

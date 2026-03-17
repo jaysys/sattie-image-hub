@@ -1,3 +1,6 @@
+import fs from "node:fs/promises";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import express from "express";
 import {
   assignApprovalsToReviewer,
@@ -8,10 +11,21 @@ import {
   initDatabase,
   saveSettings,
 } from "./db.js";
+import { createSattieDatabase, initSattieDatabase } from "./sattie/db.js";
+import { createSattieRouter } from "./sattie/routes.js";
+import { ensureSattieBootstrap } from "./sattie/seed.js";
+import { initializeSattieRuntime } from "./sattie/service.js";
 
 const app = express();
-const port = Number(process.env.PORT ?? 3001);
+const port = Number(process.env.PORT ?? 6005);
+const host = process.env.HOST ?? "127.0.0.1";
+const isProduction = process.env.NODE_ENV === "production";
 const db = createDatabase();
+const sattieDb = createSattieDatabase();
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const projectRoot = path.resolve(__dirname, "..");
+const distRoot = path.resolve(projectRoot, "dist");
+const distIndexHtml = path.join(distRoot, "index.html");
 
 app.use(express.json());
 
@@ -63,13 +77,73 @@ app.post("/api/approvals/assign", async (request, response) => {
   }
 });
 
-initDatabase(db)
-  .then(() => {
-    app.listen(port, () => {
-      console.log(`API server running on http://127.0.0.1:${port}`);
+app.use("/api/sattie", createSattieRouter({ db: sattieDb }));
+
+async function attachFrontend() {
+  if (isProduction) {
+    app.use(express.static(distRoot));
+    app.get("/{*path}", async (request, response, next) => {
+      if (request.path.startsWith("/api/")) {
+        next();
+        return;
+      }
+
+      try {
+        response.type("html").send(await fs.readFile(distIndexHtml, "utf8"));
+      } catch (error) {
+        next(error);
+      }
     });
-  })
-  .catch((error) => {
+    return;
+  }
+
+  const { createServer } = await import("vite");
+  const vite = await createServer({
+    root: projectRoot,
+    appType: "spa",
+    server: {
+      middlewareMode: true,
+    },
+  });
+
+  app.use(vite.middlewares);
+  app.use(async (request, response, next) => {
+    if (
+      request.method !== "GET" ||
+      request.originalUrl.startsWith("/api/") ||
+      request.originalUrl.startsWith("/@") ||
+      request.originalUrl.includes(".")
+    ) {
+      next();
+      return;
+    }
+
+    try {
+      const templatePath = path.resolve(projectRoot, "index.html");
+      const template = await fs.readFile(templatePath, "utf8");
+      const html = await vite.transformIndexHtml(request.originalUrl, template);
+      response.status(200).set({ "Content-Type": "text/html" }).end(html);
+    } catch (error) {
+      vite.ssrFixStacktrace(error);
+      next(error);
+    }
+  });
+}
+
+async function start() {
+  try {
+    await Promise.all([initDatabase(db), initSattieDatabase(sattieDb)]);
+    await ensureSattieBootstrap(sattieDb);
+    await initializeSattieRuntime(sattieDb);
+    await attachFrontend();
+
+    app.listen(port, host, () => {
+      console.log(`Unified server running on http://${host}:${port}`);
+    });
+  } catch (error) {
     console.error("Failed to initialize database", error);
     process.exit(1);
-  });
+  }
+}
+
+void start();
