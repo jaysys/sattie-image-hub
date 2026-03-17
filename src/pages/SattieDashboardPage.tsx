@@ -4,7 +4,8 @@ import { useNavigate } from "react-router-dom";
 import { PanelTitle } from "../components/PanelTitle";
 import { getCommands, getGroundStations, getSattieHealth } from "../lib/sattieApi";
 import type { CommandState, CommandStatus, SattieConsoleBootstrap, SattieHealthResponse } from "../sattie-types";
-import dashboardHeroImage from "../../data-sattie/app/static/k-sattie-sky-hub.jpg";
+
+const dashboardHeroImage = "/k-sattie-sky-hub.jpg";
 
 interface SattieDashboardPageProps {
   bootstrap: SattieConsoleBootstrap;
