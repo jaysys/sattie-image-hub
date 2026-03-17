@@ -32,17 +32,15 @@ export function SattiePayloadMonitoringPage() {
   const [apiKey, setApiKey] = useState(initialConfig.apiKey || "change-me");
   const [health, setHealth] = useState<SattieHealthResponse | null>(null);
   const [logs, setLogs] = useState<ApiCallLogEntry[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [healthLoading, setHealthLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
-  async function refreshMonitoring() {
-    setLoading(true);
+  async function refreshLogs() {
     setError(null);
 
     try {
-      const [nextHealth, nextLogs] = await Promise.all([getSattieHealth(), getApiCallLogs(100)]);
-      setHealth(nextHealth);
+      const nextLogs = await getApiCallLogs(100);
       setLogs(
         nextLogs
           .slice()
@@ -51,14 +49,13 @@ export function SattiePayloadMonitoringPage() {
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Payload monitoring load failed");
     } finally {
-      setLoading(false);
     }
   }
 
   useEffect(() => {
-    void refreshMonitoring();
+    void refreshLogs();
     const timer = window.setInterval(() => {
-      void refreshMonitoring();
+      void refreshLogs();
     }, 4000);
     return () => window.clearInterval(timer);
   }, []);
@@ -66,7 +63,22 @@ export function SattiePayloadMonitoringPage() {
   function handleApplyUrl() {
     setSattieApiConfig({ apiBaseUrl, apiKey });
     setMessage("API Base URL / API Key applied to current console.");
-    void refreshMonitoring();
+    void refreshLogs();
+  }
+
+  async function handleHealthCheck() {
+    setHealthLoading(true);
+    setError(null);
+
+    try {
+      const nextHealth = await getSattieHealth();
+      setHealth(nextHealth);
+      await refreshLogs();
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Health check failed");
+    } finally {
+      setHealthLoading(false);
+    }
   }
 
   async function handleClearImages() {
@@ -75,7 +87,7 @@ export function SattiePayloadMonitoringPage() {
     try {
       const response = await clearImages();
       setMessage(`Images cleared: ${response.deleted_count}, Commands updated: ${response.cleared_command_count}`);
-      await refreshMonitoring();
+      await refreshLogs();
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Clear images failed");
     }
@@ -142,14 +154,17 @@ export function SattiePayloadMonitoringPage() {
             <InputGroup value={apiKey} onValueChange={setApiKey} />
           </FormGroup>
           <FormGroup label="Service Status">
-            <InputGroup readOnly value={health ? `${health.service} · SQLite ${health.sqliteVersion}` : "-"} />
+            <InputGroup
+              readOnly
+              value={health ? `${health.service} · SQLite ${health.sqliteVersion}` : "Not checked"}
+            />
           </FormGroup>
         </div>
         <div className="button-cluster">
           <Button icon="endorsed" intent="primary" onClick={handleApplyUrl}>
             Apply URL
           </Button>
-          <Button icon="pulse" onClick={() => void refreshMonitoring()} loading={loading}>
+          <Button icon="pulse" onClick={() => void handleHealthCheck()} loading={healthLoading}>
             Health Check
           </Button>
           <Button icon="trash" intent="warning" onClick={() => void handleClearImages()}>

@@ -270,9 +270,8 @@ export function seedMockRequestors() {
 }
 
 export async function getSattieBootstrap(): Promise<SattieConsoleBootstrap> {
-  const [health, satellites, groundStations, requestors, scenarios, satelliteTypes] =
+  const [satellites, groundStations, requestors, scenarios, satelliteTypes] =
     await Promise.all([
-      getSattieHealth(),
       getSatellites(),
       getGroundStations(),
       getRequestors(),
@@ -281,7 +280,18 @@ export async function getSattieBootstrap(): Promise<SattieConsoleBootstrap> {
     ]);
 
   return {
-    health,
+    health: {
+      ok: false,
+      service: "sattie",
+      dbPath: "",
+      sqliteVersion: "-",
+      counts: {
+        satellites: satellites.length,
+        groundStations: groundStations.length,
+        requestors: requestors.length,
+        commands: 0,
+      },
+    },
     satellites,
     groundStations,
     requestors,

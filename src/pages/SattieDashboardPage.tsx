@@ -117,14 +117,20 @@ export function SattieDashboardPage({ bootstrap, darkMode }: SattieDashboardPage
   const latestCompletedCommands = useMemo(() => completedCommands.slice(0, 10), [completedCommands]);
 
   async function refreshDashboard() {
-    const [nextHealth, nextCommands, nextGroundStations] = await Promise.all([
-      getSattieHealth(),
+    const [nextCommands, nextGroundStations] = await Promise.all([
       getCommands(),
       getGroundStations(),
     ]);
-    setHealth(nextHealth);
     setCommands(nextCommands);
     setGroundStationCount(nextGroundStations.length);
+    setHealth((current) => ({
+      ...current,
+      counts: {
+        ...current.counts,
+        commands: nextCommands.length,
+        groundStations: nextGroundStations.length,
+      },
+    }));
   }
 
   useEffect(() => {
@@ -215,7 +221,7 @@ export function SattieDashboardPage({ bootstrap, darkMode }: SattieDashboardPage
             <span>dashboard loading</span>
           </div>
         ) : (
-          <Callout icon="info-sign" intent={health.ok ? "success" : "danger"} className="stack-actions">
+          <Callout icon="info-sign" intent={health.ok ? "success" : "primary"} className="stack-actions">
             {healthMessage}
           </Callout>
         )}
