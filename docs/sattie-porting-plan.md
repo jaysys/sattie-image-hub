@@ -111,6 +111,7 @@
 | A17 | Done | `sattie-skor-tracker` Orbit Track 화면을 현재 앱 라우트로 포팅 |
 | A18 | Done | 전역 LEO point cloud overlay를 Orbit Track에 병합 |
 | A19 | Done | 한국 위성을 `satellite.js + OMM/TLE` live propagation으로 전환 |
+| A20 | Done | Orbit Track 런타임을 단독 배포형(vendored cache)으로 전환 |
 
 ## 체크리스트
 
@@ -188,4 +189,5 @@
 - `KOMPSAT-3A`, `STEP CUBE LAB`, `SpaceEye-T`도 원본 CSV 기준 상세 orbit metadata를 보강했고, Orbit Track 라벨은 근접 위성끼리 자동 분산되도록 조정했다.
 - `A18`: `sattie-skor-tracker/data/leo-live-cache.json`의 전역 LEO 스냅샷을 현재 앱으로 가져와서 비한국 LEO는 원본 스타일 point cloud로, 한국 위성만 궤도선으로 표시하도록 병합했다.
 - `A19`: `sattie-skor-tracker/data/satellite-live-cache.json`과 원본 `satellite.js`를 사용해 한국 위성도 live propagated current/track를 계산하고 Orbit Track 화면에 반영했다.
+- `A20`: 운영 배포에서 sibling repo 의존이 깨지지 않도록 `leo-live-cache.json`, `satellite-live-cache.json`을 현재 저장소 `server/sattie/data/`로 vendor-in 했고, 한국 위성 live 계산도 외부 `satellite.js` 대신 내부 OMM 전파 유틸로 전환했다.
 - 검증 및 잔여 갭 정리는 [./sattie-verification.md](./sattie-verification.md)에 계속 기록한다.

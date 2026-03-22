@@ -120,7 +120,7 @@ npm run build
 
 - Node 모듈 직접 호출
 - 대상:
-  - `sattie-skor-tracker/data/leo-live-cache.json`
+  - `server/sattie/data/leo-live-cache.json`
   - `GET /api/sattie/orbit-track/leo-backdrop`
   - Orbit Track 3D globe point cloud 렌더링
 
@@ -135,7 +135,7 @@ npm run build
 
 판정:
 
-- `sattie-skor-tracker` 전역 LEO backdrop 스냅샷이 현재 앱에 정상 병합됨
+- vendored 전역 LEO backdrop 스냅샷이 현재 앱에 정상 병합됨
 - Orbit Track은 `한국 위성 궤도 + 전역 LEO point cloud` 구성을 지원함
 
 ## Korean live propagation 검증
@@ -144,23 +144,43 @@ npm run build
 
 - Node 모듈 직접 호출
 - 대상:
-  - `sattie-skor-tracker/data/satellite-live-cache.json`
-  - 원본 `satellite.js`
+  - `server/sattie/data/satellite-live-cache.json`
   - `GET /api/sattie/orbit-track/korean-live`
   - Orbit Track 화면의 한국 위성 entry 병합
 
 검증 결과:
 
-- 원본 `satellite-live-cache.json`의 한국 위성 live cache를 읽어 `48`개 propagated entry를 생성했다.
-- 서버는 원본 저장소의 `node_modules/satellite.js`를 사용해 `json2satrec/twoline2satrec` 기반으로 현재 위치와 궤도 샘플을 계산한다.
-- 샘플 검증에서 `SPACEEYE-T1`은 `period_minutes=94.636`, `track_count=48`, `KOMPSAT 2`는 `period_minutes=98.321`, `track_count=50`으로 확인됐다.
+- vendored `satellite-live-cache.json`의 한국 위성 live cache를 읽어 `53`개 propagated entry를 생성했다.
+- 서버는 외부 `satellite.js` 의존 없이 내부 OMM 전파 유틸로 현재 위치와 궤도 샘플을 계산한다.
+- 샘플 검증에서 `SPACEEYE-T1`과 `KOMPSAT 2` 모두 현재 좌표와 `period_minutes`가 정상 계산됨을 확인했다.
 - Orbit Track 페이지는 한국 위성에 대해서 live propagated `current/track`를 우선 적용하고, live cache가 없는 위성만 기존 근사 orbit metadata 계산을 fallback으로 사용한다.
 - `npm run build` 통과
 
 판정:
 
-- 한국 위성도 이제 원본과 같은 `satellite.js + OMM/TLE` 전파 방식으로 Orbit Track에 반영됨
-- 현재 Orbit Track은 `한국 위성 live propagation + 전역 LEO point cloud` 구조로 동작함
+- 한국 위성 live propagation이 현재 저장소 내부 자산만으로 동작함
+- 현재 Orbit Track은 `한국 위성 live propagation + 전역 LEO point cloud` 구조를 단독 배포형으로 지원함
+
+## Standalone deployment 검증
+
+실행 방식:
+
+- Node 모듈 직접 호출
+- 대상:
+  - `server/sattie/leoBackdrop.js`
+  - `server/sattie/koreanOrbitLive.js`
+  - vendored cache 파일
+
+검증 결과:
+
+- 외부 sibling repo 경로 없이 `server/sattie/data/leo-live-cache.json`과 `server/sattie/data/satellite-live-cache.json`만으로 응답 생성 가능함을 확인했다.
+- `getLeoBackdropPoints()` 결과는 `rendered_count=14999`로 확인됐다.
+- `getKoreanOrbitLiveTracks()` 결과는 `count=53`으로 확인됐다.
+- source label도 각각 `vendored leo-live-cache.json`, `vendored satellite-live-cache.json`으로 반환된다.
+
+판정:
+
+- Orbit Track 서버 런타임은 이제 `sattie-image-hub` 단독 배포형으로 동작함
 
 ## NEXTSAT-1 orbit metadata 정합성 검증
 

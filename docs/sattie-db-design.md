@@ -241,6 +241,7 @@ ON sattie_commands (created_at DESC);
 - `sattie-skor-tracker`에서 확인 가능한 위성은 orbit-track 메타를 함께 병합
 - tracker에 직접 대응값이 없는 baseline 위성은 기존 baseline 정보만 유지하고 orbit-track 메타는 `NULL`
 - 2차 확장에서는 baseline이 이미 대표하는 위성을 제외한 활성 orbit-track 위성을 추가 seed로 적재
+- 운영 배포용 Orbit Track 런타임 데이터(`leo-live-cache.json`, `satellite-live-cache.json`)는 현재 저장소 `server/sattie/data/`에 vendor-in 한다
 
 ### 지상국 시드
 
