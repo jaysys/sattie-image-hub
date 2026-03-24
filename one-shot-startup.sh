@@ -53,6 +53,22 @@ compute_build_stamp() {
   )
 }
 
+stop_existing_process() {
+  local pid="$1"
+  echo "[INFO] restarting running process (pid=$pid) to apply latest changes..."
+  kill "$pid" 2>/dev/null || true
+
+  for _ in {1..20}; do
+    if ! kill -0 "$pid" 2>/dev/null; then
+      return 0
+    fi
+    sleep 0.5
+  done
+
+  echo "[ERROR] existing process did not stop cleanly (pid=$pid)"
+  return 1
+}
+
 mkdir -p "$PID_DIR"
 
 if [[ ! -d "$ROOT_DIR/node_modules" ]]; then
@@ -65,6 +81,7 @@ CURRENT_DEPS_STAMP="$(compute_deps_stamp)"
 INSTALLED_DEPS_STAMP="$(cat "$DEPS_STAMP_FILE" 2>/dev/null || true)"
 CURRENT_BUILD_STAMP="$(compute_build_stamp)"
 INSTALLED_BUILD_STAMP="$(cat "$BUILD_STAMP_FILE" 2>/dev/null || true)"
+NEEDS_RESTART=0
 
 if [[ "$CURRENT_DEPS_STAMP" != "$INSTALLED_DEPS_STAMP" ]]; then
   echo "[INFO] dependency manifest changed. installing updated dependencies..."
@@ -74,6 +91,7 @@ if [[ "$CURRENT_DEPS_STAMP" != "$INSTALLED_DEPS_STAMP" ]]; then
   )
   mkdir -p "$ROOT_DIR/node_modules"
   printf '%s\n' "$CURRENT_DEPS_STAMP" > "$DEPS_STAMP_FILE"
+  NEEDS_RESTART=1
 fi
 
 if [[ ! -f "$ROOT_DIR/dist/index.html" || "$CURRENT_BUILD_STAMP" != "$INSTALLED_BUILD_STAMP" ]]; then
@@ -84,17 +102,24 @@ if [[ ! -f "$ROOT_DIR/dist/index.html" || "$CURRENT_BUILD_STAMP" != "$INSTALLED_
   )
   mkdir -p "$ROOT_DIR/dist"
   printf '%s\n' "$CURRENT_BUILD_STAMP" > "$BUILD_STAMP_FILE"
+  NEEDS_RESTART=1
 fi
 
 if [[ -f "$PID_FILE" ]]; then
   OLD_PID="$(cat "$PID_FILE" || true)"
   if [[ -n "${OLD_PID:-}" ]] && kill -0 "$OLD_PID" 2>/dev/null; then
-    echo "[INFO] already running (pid=$OLD_PID)"
-    echo "URL: http://$HOST:$PORT"
-    echo "LOG: $LOG_FILE"
-    exit 0
+    if [[ "$NEEDS_RESTART" -eq 1 ]]; then
+      stop_existing_process "$OLD_PID"
+      rm -f "$PID_FILE"
+    else
+      echo "[INFO] already running (pid=$OLD_PID)"
+      echo "URL: http://$HOST:$PORT"
+      echo "LOG: $LOG_FILE"
+      exit 0
+    fi
+  else
+    rm -f "$PID_FILE"
   fi
-  rm -f "$PID_FILE"
 fi
 
 if lsof -nP -iTCP:"$PORT" -sTCP:LISTEN >/dev/null 2>&1; then
