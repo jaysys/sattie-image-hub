@@ -62,6 +62,13 @@ type PreviewDragState = {
   zoom: number;
 };
 
+type ScenarioTemplate = Pick<
+  UplinkFormState,
+  "mission_name" | "aoi_name" | "aoi_center_lat" | "aoi_center_lon" | "aoi_bbox" | "external_map_zoom"
+> & {
+  priority?: TaskPriority;
+};
+
 const KOREA_PREVIEW_HOME = {
   lat: 36.2,
   lon: 127.8,
@@ -336,6 +343,195 @@ const UPLINK_PRESETS_BY_SATELLITE_ID: Record<string, Partial<UplinkFormState>> =
   },
 };
 
+const EO_AUTO_SCENARIOS: ScenarioTemplate[] = [
+  {
+    mission_name: "서울 도심 재개발 변화 탐지",
+    aoi_name: "서울 용산-여의도 도시권",
+    aoi_center_lat: "37.527",
+    aoi_center_lon: "126.952",
+    aoi_bbox: "126.90,37.48,127.02,37.57",
+    external_map_zoom: "15",
+    priority: "COMMERCIAL",
+  },
+  {
+    mission_name: "울산-포항 산업 축선 모니터링",
+    aoi_name: "울산-포항 산업 축선",
+    aoi_center_lat: "35.812",
+    aoi_center_lon: "129.325",
+    aoi_bbox: "129.05,35.55,129.55,36.05",
+    external_map_zoom: "14",
+    priority: "COMMERCIAL",
+  },
+  {
+    mission_name: "새만금 연안 개발 현황 관측",
+    aoi_name: "새만금 연안 개발권",
+    aoi_center_lat: "35.818",
+    aoi_center_lon: "126.611",
+    aoi_bbox: "126.35,35.60,126.88,36.02",
+    external_map_zoom: "14",
+    priority: "COMMERCIAL",
+  },
+  {
+    mission_name: "제주 남부 연안 환경 감시",
+    aoi_name: "제주 남부 연안",
+    aoi_center_lat: "33.245",
+    aoi_center_lon: "126.561",
+    aoi_bbox: "126.20,33.05,126.92,33.45",
+    external_map_zoom: "13",
+    priority: "COMMERCIAL",
+  },
+];
+
+const SAR_AUTO_SCENARIOS: ScenarioTemplate[] = [
+  {
+    mission_name: "서해 북부 해상 표적 감시",
+    aoi_name: "서해 북부 해상 감시권",
+    aoi_center_lat: "37.981",
+    aoi_center_lon: "125.842",
+    aoi_bbox: "125.20,37.55,126.35,38.35",
+    external_map_zoom: "9",
+    priority: "URGENT",
+  },
+  {
+    mission_name: "동해 북부 연안 전천후 감시",
+    aoi_name: "동해 북부 연안 감시권",
+    aoi_center_lat: "38.332",
+    aoi_center_lon: "128.978",
+    aoi_bbox: "128.45,37.95,129.35,38.62",
+    external_map_zoom: "11",
+    priority: "URGENT",
+  },
+  {
+    mission_name: "설악-인제 산악 전천후 재방문 감시",
+    aoi_name: "설악-인제 산악 감시권",
+    aoi_center_lat: "38.061",
+    aoi_center_lon: "128.354",
+    aoi_bbox: "127.95,37.78,128.72,38.32",
+    external_map_zoom: "11",
+    priority: "URGENT",
+  },
+  {
+    mission_name: "낙동강 중하류 홍수 범람 감시",
+    aoi_name: "낙동강 중하류 범람권",
+    aoi_center_lat: "35.321",
+    aoi_center_lon: "128.952",
+    aoi_bbox: "128.58,35.02,129.22,35.58",
+    external_map_zoom: "12",
+    priority: "URGENT",
+  },
+];
+
+const GEO_ENV_SCENARIOS: ScenarioTemplate[] = [
+  {
+    mission_name: "한반도 광역 기상 감시",
+    aoi_name: "대한민국 전역 기상권",
+    aoi_center_lat: "36.200",
+    aoi_center_lon: "127.800",
+    aoi_bbox: "124.60,33.00,131.20,39.20",
+    external_map_zoom: "7",
+    priority: "URGENT",
+  },
+  {
+    mission_name: "남해상 태풍 구름대 추적",
+    aoi_name: "대한민국 남해상 광역권",
+    aoi_center_lat: "33.950",
+    aoi_center_lon: "127.950",
+    aoi_bbox: "124.50,31.80,131.50,36.00",
+    external_map_zoom: "7",
+    priority: "URGENT",
+  },
+  {
+    mission_name: "서해 유입 대기질 확산 감시",
+    aoi_name: "서해-수도권 대기질 광역권",
+    aoi_center_lat: "36.950",
+    aoi_center_lon: "125.950",
+    aoi_bbox: "122.80,34.80,128.50,38.60",
+    external_map_zoom: "7",
+    priority: "URGENT",
+  },
+];
+
+const SATCOM_AUTO_SCENARIOS: ScenarioTemplate[] = [
+  {
+    mission_name: "대한민국 전역 통신 커버리지 점검",
+    aoi_name: "대한민국 전역 서비스권",
+    aoi_center_lat: "36.200",
+    aoi_center_lon: "127.800",
+    aoi_bbox: "124.60,33.00,131.20,39.20",
+    external_map_zoom: "7",
+    priority: "COMMERCIAL",
+  },
+  {
+    mission_name: "동북아 방송 통신 중계 상태 점검",
+    aoi_name: "동북아 광역 서비스권",
+    aoi_center_lat: "36.800",
+    aoi_center_lon: "128.500",
+    aoi_bbox: "122.00,29.50,134.50,42.00",
+    external_map_zoom: "6",
+    priority: "COMMERCIAL",
+  },
+];
+
+const SMALLSAT_AUTO_SCENARIOS: ScenarioTemplate[] = [
+  {
+    mission_name: "판교-성남 기술벨트 모니터링",
+    aoi_name: "판교-성남 기술벨트",
+    aoi_center_lat: "37.394",
+    aoi_center_lon: "127.112",
+    aoi_bbox: "127.00,37.33,127.22,37.47",
+    external_map_zoom: "15",
+    priority: "COMMERCIAL",
+  },
+  {
+    mission_name: "대전 연구단지 변화 관측",
+    aoi_name: "대전 연구단지",
+    aoi_center_lat: "36.384",
+    aoi_center_lon: "127.381",
+    aoi_bbox: "127.28,36.32,127.48,36.45",
+    external_map_zoom: "15",
+    priority: "COMMERCIAL",
+  },
+  {
+    mission_name: "인천항 물류 흐름 모니터링",
+    aoi_name: "인천항-송도 물류권",
+    aoi_center_lat: "37.397",
+    aoi_center_lon: "126.624",
+    aoi_bbox: "126.50,37.30,126.77,37.50",
+    external_map_zoom: "14",
+    priority: "COMMERCIAL",
+  },
+  {
+    mission_name: "광주 도심 확장 변화 관측",
+    aoi_name: "광주 도심 관측권",
+    aoi_center_lat: "35.159",
+    aoi_center_lon: "126.852",
+    aoi_bbox: "126.73,35.08,126.98,35.24",
+    external_map_zoom: "14",
+    priority: "COMMERCIAL",
+  },
+];
+
+const DEEP_SPACE_AUTO_SCENARIOS: ScenarioTemplate[] = [
+  {
+    mission_name: "대전 심우주 통신 지원 운용",
+    aoi_name: "대전 항우연 지상 지원권",
+    aoi_center_lat: "36.389",
+    aoi_center_lon: "127.374",
+    aoi_bbox: "127.28,36.32,127.47,36.45",
+    external_map_zoom: "15",
+    priority: "URGENT",
+  },
+  {
+    mission_name: "제주 심우주 다운링크 지원 운용",
+    aoi_name: "제주 남부 지상 지원권",
+    aoi_center_lat: "33.312",
+    aoi_center_lon: "126.348",
+    aoi_bbox: "126.10,33.15,126.60,33.45",
+    external_map_zoom: "12",
+    priority: "URGENT",
+  },
+];
+
 function getTypeFallbackPreset(type: Satellite["type"]): Partial<UplinkFormState> {
   if (type === "SAR") {
     return {
@@ -380,11 +576,77 @@ function getTypeFallbackPreset(type: Satellite["type"]): Partial<UplinkFormState
   };
 }
 
+function pickScenarioTemplate(satelliteId: string, templates: ScenarioTemplate[]) {
+  const normalized = String(satelliteId ?? "");
+  const index = normalized
+    .split("")
+    .reduce((acc, char) => ((acc * 31 + char.charCodeAt(0)) >>> 0), 17) % templates.length;
+  return templates[index];
+}
+
+function mergeScenarioPreset(base: Partial<UplinkFormState>, scenario: ScenarioTemplate): Partial<UplinkFormState> {
+  return {
+    ...base,
+    mission_name: scenario.mission_name,
+    aoi_name: scenario.aoi_name,
+    aoi_center_lat: scenario.aoi_center_lat,
+    aoi_center_lon: scenario.aoi_center_lon,
+    aoi_bbox: scenario.aoi_bbox,
+    external_map_zoom: scenario.external_map_zoom,
+    priority: scenario.priority ?? base.priority,
+  };
+}
+
+function getPresetForSatellite(satellite: Satellite | null | undefined): Partial<UplinkFormState> {
+  if (!satellite) {
+    return {};
+  }
+
+  const directPreset = UPLINK_PRESETS_BY_SATELLITE_ID[satellite.satellite_id];
+  if (directPreset) {
+    return directPreset;
+  }
+
+  const base = getTypeFallbackPreset(satellite.type);
+  const token = [
+    satellite.satellite_id,
+    satellite.name,
+    satellite.eng_model,
+    satellite.domain,
+    satellite.primary_mission,
+    satellite.orbit_class,
+    satellite.orbit_label,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toUpperCase();
+
+  if (/KPLO|LUNAR|MOON/.test(token)) {
+    return mergeScenarioPreset(base, pickScenarioTemplate(satellite.satellite_id, DEEP_SPACE_AUTO_SCENARIOS));
+  }
+  if (/KOREASAT|ABS-|SATCOM/.test(token)) {
+    return mergeScenarioPreset(base, pickScenarioTemplate(satellite.satellite_id, SATCOM_AUTO_SCENARIOS));
+  }
+  if (/GK-2A|GK-2B|GEO-KOMPSAT|COMS/.test(token)) {
+    return mergeScenarioPreset(base, pickScenarioTemplate(satellite.satellite_id, GEO_ENV_SCENARIOS));
+  }
+  if (
+    /NEONSAT|SNUSAT|NEXTSAT|STEP|OSSI|CUBESAT|CONTEC|OBSERVER|JINJU|SPACEEYE|GYEONGGI|PVSAT|RANDEV|SNUGLITE|MIMAN|DOORY/.test(
+      token,
+    )
+  ) {
+    return mergeScenarioPreset(base, pickScenarioTemplate(satellite.satellite_id, SMALLSAT_AUTO_SCENARIOS));
+  }
+  if (satellite.type === "SAR" || /SAR/.test(token)) {
+    return mergeScenarioPreset(base, pickScenarioTemplate(satellite.satellite_id, SAR_AUTO_SCENARIOS));
+  }
+
+  return mergeScenarioPreset(base, pickScenarioTemplate(satellite.satellite_id, EO_AUTO_SCENARIOS));
+}
+
 function createInitialForm(satellites: Satellite[], groundStations: GroundStation[]): UplinkFormState {
   const firstSatellite = satellites[0];
-  const preset = firstSatellite
-    ? UPLINK_PRESETS_BY_SATELLITE_ID[firstSatellite.satellite_id] ?? getTypeFallbackPreset(firstSatellite.type)
-    : {};
+  const preset = getPresetForSatellite(firstSatellite);
 
   return {
     satellite_id: firstSatellite?.satellite_id ?? "",
@@ -576,7 +838,7 @@ export function SattieUplinkPage({
     if (!satellite) {
       return;
     }
-    const preset = UPLINK_PRESETS_BY_SATELLITE_ID[satellite.satellite_id] ?? getTypeFallbackPreset(satellite.type);
+    const preset = getPresetForSatellite(satellite);
     setForm((current) => ({
       ...current,
       satellite_id: satelliteId,
