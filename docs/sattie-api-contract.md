@@ -316,6 +316,51 @@ interface Scenario {
 }
 ```
 
+터미널에서 직접 시험할 때는 운영환경을 `https://echo.smartspace.co.kr/`로 두고 아래처럼 호출한다.
+
+`ground_station_id`, `requestor_id`는 운영 데이터와 정확히 맞아야 하므로, 빠른 시험은 최소 필드만 넣는 방식을 우선 권장한다.
+
+```bash
+curl -sS 'https://echo.smartspace.co.kr/api/sattie/uplink' \
+  -X POST \
+  -H 'Content-Type: application/json' \
+  --data-raw '{
+    "satellite_id": "KOMPSAT-3",
+    "mission_name": "prod terminal uplink test",
+    "aoi_name": "Seoul",
+    "aoi_center_lat": 37.5665,
+    "aoi_center_lon": 126.9780,
+    "aoi_bbox": [126.90, 37.50, 127.08, 37.62],
+    "width": 1024,
+    "height": 1024,
+    "delivery_method": "DOWNLOAD",
+    "generation_mode": "EXTERNAL",
+    "external_map_source": "OSM",
+    "external_map_zoom": 14,
+    "fail_probability": 0
+  }'
+```
+
+응답에서 받은 `command_id`는 아래처럼 바로 조회할 수 있다.
+
+```bash
+curl -sS 'https://echo.smartspace.co.kr/api/sattie/commands/<command_id>'
+```
+
+운영 데이터에 맞는 `satellite_id`, `ground_station_id`, `requestor_id`를 먼저 확인하려면 아래 조회를 선행한다.
+
+```bash
+curl -sS 'https://echo.smartspace.co.kr/api/sattie/satellites'
+curl -sS 'https://echo.smartspace.co.kr/api/sattie/ground-stations'
+curl -sS 'https://echo.smartspace.co.kr/api/sattie/requestors'
+```
+
+인증 게이트웨이가 `x-api-key`를 요구하는 배포에서는 아래 헤더를 추가한다.
+
+```bash
+-H 'x-api-key: <YOUR_API_KEY>'
+```
+
 ## Express 구현 메모
 
 - 기존 서버 스타일을 맞추기 위해 `server/index.js`에서 라우터 마운트 방식으로 붙인다.
