@@ -286,33 +286,18 @@ interface Scenario {
 ```json
 {
   "satellite_id": "KOMPSAT-3",
-  "ground_station_id": "DAE-MC",
-  "requestor_id": "req-1234",
-  "mission_name": "국토 정사영상 갱신",
-  "aoi_name": "수도권",
-  "aoi_center_lat": 37.56,
-  "aoi_center_lon": 126.98,
-  "aoi_bbox": [126.75, 37.40, 127.22, 37.72],
-  "window_open_utc": "2026-01-01T00:00:00Z",
-  "window_close_utc": "2026-01-01T03:00:00Z",
-  "priority": "COMMERCIAL",
+  "mission_name": "prod terminal uplink test",
+  "aoi_name": "Seoul",
+  "aoi_center_lat": 37.5665,
+  "aoi_center_lon": 126.978,
+  "aoi_bbox": [126.9, 37.5, 127.08, 37.62],
   "width": 1024,
   "height": 1024,
-  "cloud_percent": 20,
-  "max_cloud_cover_percent": 25,
-  "max_off_nadir_deg": 20,
-  "min_sun_elevation_deg": 25,
-  "incidence_min_deg": null,
-  "incidence_max_deg": null,
-  "look_side": "ANY",
-  "pass_direction": "ANY",
-  "polarization": null,
   "delivery_method": "DOWNLOAD",
-  "delivery_path": null,
-  "generation_mode": "INTERNAL",
+  "generation_mode": "EXTERNAL",
   "external_map_source": "OSM",
-  "external_map_zoom": 16,
-  "fail_probability": 0.05
+  "external_map_zoom": 14,
+  "fail_probability": 0
 }
 ```
 
