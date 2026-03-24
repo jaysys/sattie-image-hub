@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import { SCENARIO_BASELINES, SATELLITE_TYPE_PROFILES } from "./catalog.js";
 import { all, get, run, sattieDbPath } from "./db.js";
 import {
+  appendImageMetadataFooter,
   buildImageFilePath,
   clearGeneratedImages,
   deriveExternalCenter,
@@ -25,6 +26,33 @@ const pipelineTimers = new Map();
 
 function nowIso() {
   return new Date().toISOString();
+}
+
+function getRequestProfileCenter(requestProfile) {
+  if (requestProfile?.aoi_center?.lat != null && requestProfile?.aoi_center?.lon != null) {
+    return {
+      lat: Number(requestProfile.aoi_center.lat),
+      lon: Number(requestProfile.aoi_center.lon),
+    };
+  }
+
+  const bbox = Array.isArray(requestProfile?.aoi_bbox) ? requestProfile.aoi_bbox : null;
+  if (bbox?.length === 4) {
+    const [minLon, minLat, maxLon, maxLat] = bbox.map((value) => Number(value));
+    return {
+      lat: (minLat + maxLat) / 2,
+      lon: (minLon + maxLon) / 2,
+    };
+  }
+
+  return null;
+}
+
+function formatLatLon(center) {
+  if (!center) {
+    return null;
+  }
+  return `${center.lat.toFixed(5)}, ${center.lon.toFixed(5)}`;
 }
 
 function normalizeName(name) {
@@ -410,6 +438,15 @@ async function runCommandPipeline(db, commandId) {
         } else {
           writeOpticalImage(imagePath, capturing.width, capturing.height);
         }
+        const footerCenter = getRequestProfileCenter(requestProfile);
+        await appendImageMetadataFooter(imagePath, {
+          satellite: activeSatellite.name || activeSatellite.satellite_id,
+          missionName: capturing.mission_name,
+          aoiName: capturing.aoi_name,
+          latLon: formatLatLon(footerCenter),
+          groundStation: requestProfile?.ground_station?.name ?? null,
+          requestor: requestProfile?.requestor?.name ?? null,
+        });
 
         const acquisitionMetadata = buildAcquisitionMetadata(activeSatellite, capturing);
         const productMetadata = buildProductMetadata(activeSatellite, capturing);

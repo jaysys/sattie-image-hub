@@ -137,8 +137,8 @@ export function SattieScenariosPage({
     <div className="page-stack">
       <section className="page-intro">
         <div className="page-intro__copy">
-          <p className="eyebrow">Multi Payload Scenario</p>
-          <h1>Scenario Regression Runner</h1>
+          <p className="eyebrow">Multi-Scenario</p>
+          <h1>Multi-Scenario Runnder</h1>
           <p className="page-copy">
             자가검증 목적으로 시나리오 카탈로그를 실행해 uplink 생성과 최종 상태를 확인한다.
             결과는 pass/fail 기준으로 누적된다.

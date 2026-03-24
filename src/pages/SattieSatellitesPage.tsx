@@ -419,7 +419,7 @@ export function SattieSatellitesPage({
       <section className="page-intro">
         <div className="page-intro__copy">
           <p className="eyebrow">Satellites</p>
-          <h1>Resource Management Console</h1>
+          <h1>Satellites Management</h1>
           <p className="page-copy">
             PoC 용도로 필요한 위성정보, 지상국정보, 사용자 정보 Seeding, 생성, 수정,
             삭제를 통해 위성 자원과 지상국 네트워크를 검증하는 화면이다.

@@ -264,7 +264,7 @@ export function SattiePerformancePage({ satellites }: SattiePerformancePageProps
       <section className="page-intro">
         <div className="page-intro__copy">
           <p className="eyebrow">Satellites Performance</p>
-          <h1>Satellite Imaging Performance Statistics</h1>
+          <h1>Satellite Commands Statistics</h1>
           <p className="page-copy">
             위성별 Uplink 수행, 다운링크결과를 모사하는 리포트로 집계하는 화면이다.
           </p>

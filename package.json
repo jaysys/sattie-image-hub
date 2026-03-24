@@ -15,6 +15,8 @@
     "@blueprintjs/icons": "^6.1.0",
     "@blueprintjs/select": "^6.1.4",
     "@blueprintjs/table": "^6.0.19",
+    "@fontsource/noto-sans-kr": "^5.2.9",
+    "@napi-rs/canvas": "^0.1.97",
     "express": "^5.2.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",

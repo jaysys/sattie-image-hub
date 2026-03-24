@@ -113,7 +113,7 @@ export function SattieOrbitTrackPage({ satellites }: SattieOrbitTrackPageProps) 
       <section className="page-intro">
         <div className="page-intro__copy">
           <p className="eyebrow">Orbit Track</p>
-          <h1>Korean Satellite Orbit Track</h1>
+          <h1>Satellites Orbit Track</h1>
           <p className="page-copy">
             `sattie-skor-tracker`의 Orbit Track 케이스를 현재 운영 콘솔에 맞게 이식한 화면이다. 현재 앱에
             동기화된 orbit metadata를 기준으로 한국 위성 궤도군, 선택 상태, 원천 메타를 한 화면에서 본다.
@@ -137,7 +137,7 @@ export function SattieOrbitTrackPage({ satellites }: SattieOrbitTrackPageProps) 
         </Card>
       </section>
 
-      <div className="split-grid">
+      <div className="split-grid split-grid--orbit-track">
         <Card className="panel orbit-track-panel">
           <div className="panel__title-row">
             <PanelTitle icon="globe-network">Orbit Track Map</PanelTitle>

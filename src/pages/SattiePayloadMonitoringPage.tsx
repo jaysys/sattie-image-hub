@@ -102,8 +102,8 @@ export function SattiePayloadMonitoringPage() {
     <div className="page-stack">
       <section className="page-intro">
         <div className="page-intro__copy">
-          <p className="eyebrow">Payload Monitoring</p>
-          <h1>External Payload Monitoring And API Call Logs</h1>
+          <p className="eyebrow">API Call Logs</p>
+          <h1>External API Call Logs</h1>
           <p className="page-copy">
             API base URL, API key, health 확인, image clear, recent API call 로그를 한
             화면에서 추적한다.

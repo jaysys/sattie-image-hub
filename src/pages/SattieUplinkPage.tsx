@@ -732,8 +732,8 @@ export function SattieUplinkPage({
     <div className="page-stack">
       <section className="page-intro">
         <div className="page-intro__copy">
-          <p className="eyebrow">Send A Uplink</p>
-          <h1>Tasking Form Console</h1>
+          <p className="eyebrow">Send a Uplink</p>
+          <h1>Tasking Console</h1>
           <p className="page-copy">
             자가검증목적으로 satellite preset을 기준으로 business tasking payload를 입력하고
             실제 uplink command를 생성한다. 제출 후 결과는 즉시 확인하고 Commands Monitor로
@@ -776,7 +776,14 @@ export function SattieUplinkPage({
         </Callout>
       ) : null}
 
-      <section className="uplink-grid uplink-grid--triple uplink-context-grid">
+      <Card className="panel uplink-form-cluster">
+        <div className="panel__title-row">
+          <PanelTitle icon="layers">Tasking Parameters</PanelTitle>
+          <Tag minimal intent="primary">
+            Grouped Form
+          </Tag>
+        </div>
+        <section className="uplink-grid uplink-grid--triple uplink-context-grid uplink-form-cluster__grid">
         <Card className="panel">
           <div className="panel__title-row">
             <PanelTitle icon="satellite">Mission Context</PanelTitle>
@@ -1017,7 +1024,8 @@ export function SattieUplinkPage({
             </div>
           </div>
         </Card>
-      </section>
+        </section>
+      </Card>
 
       <section className="uplink-submit-row">
         <Button intent="primary" large loading={submitting} disabled={!canSend} onClick={() => void handleSubmit()}>

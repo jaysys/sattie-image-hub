@@ -1,16 +1,62 @@
 import fs from "node:fs";
 import path from "node:path";
 import zlib from "node:zlib";
+import { createCanvas, GlobalFonts, loadImage } from "@napi-rs/canvas";
 
 const imageDir = path.resolve("server", "data", "sattie", "images");
 const pngSignature = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
 const OSM_TILE_TEMPLATE =
   process.env.SATTIE_OSM_TILE_URL_TEMPLATE ?? "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
 const OSM_USER_AGENT = "k-sattie-sky-hub/0.2 (+https://localhost; contact: local-dev)";
+const FOOTER_FONT_FAMILY = "Sattie Noto Sans KR";
+const DECORATION_SCALE = 0.5;
+const DECORATION_BG_START = "#f3fbff";
+const DECORATION_BG_END = "#dceffc";
+const DECORATION_GRID = "rgba(73, 128, 168, 0.12)";
+const DECORATION_GRID_BOLD = "rgba(73, 128, 168, 0.2)";
+const DECORATION_TEXT = "#204863";
+const DECORATION_TEXT_MUTED = "#587991";
+const DECORATION_BORDER = "rgba(104, 157, 195, 0.34)";
+const DECORATION_CELL_BG = "rgba(255, 255, 255, 0.72)";
+const FOOTER_FONT_PATHS = [
+  path.resolve("node_modules", "@fontsource", "noto-sans-kr", "files", "noto-sans-kr-korean-400-normal.woff"),
+  path.resolve("node_modules", "@fontsource", "noto-sans-kr", "files", "noto-sans-kr-korean-700-normal.woff"),
+  path.resolve("node_modules", "@fontsource", "noto-sans-kr", "files", "noto-sans-kr-latin-400-normal.woff"),
+  path.resolve("node_modules", "@fontsource", "noto-sans-kr", "files", "noto-sans-kr-latin-700-normal.woff"),
+];
+
+let footerFontsReady = false;
 
 export function ensureSattieImageDir() {
   fs.mkdirSync(imageDir, { recursive: true });
   return imageDir;
+}
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function ensureFooterFonts() {
+  if (footerFontsReady) {
+    return;
+  }
+
+  let registeredCount = 0;
+  for (const fontPath of FOOTER_FONT_PATHS) {
+    if (!fs.existsSync(fontPath)) {
+      continue;
+    }
+    const key = GlobalFonts.registerFromPath(fontPath, FOOTER_FONT_FAMILY);
+    if (key) {
+      registeredCount += 1;
+    }
+  }
+
+  if (registeredCount === 0) {
+    throw new Error("Footer font registration failed. Install @fontsource/noto-sans-kr.");
+  }
+
+  footerFontsReady = true;
 }
 
 function buildCrcTable() {
@@ -102,6 +148,251 @@ function buildRgbData(width, height, pixelFn) {
 function buildPng(width, height, pixelFn) {
   const rgb = buildRgbData(width, height, pixelFn);
   return encodeRgbPng(rgb.width, rgb.height, rgb.rgbData);
+}
+
+function drawRoundedRect(ctx, x, y, width, height, radius) {
+  const r = clamp(radius, 0, Math.min(width, height) / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + width - r, y);
+  ctx.quadraticCurveTo(x + width, y, x + width, y + r);
+  ctx.lineTo(x + width, y + height - r);
+  ctx.quadraticCurveTo(x + width, y + height, x + width - r, y + height);
+  ctx.lineTo(x + r, y + height);
+  ctx.quadraticCurveTo(x, y + height, x, y + height - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+function fitTextToWidth(ctx, text, maxWidth) {
+  const normalized = String(text ?? "").trim().replace(/\s+/g, " ");
+  if (!normalized) {
+    return "-";
+  }
+  if (ctx.measureText(normalized).width <= maxWidth) {
+    return normalized;
+  }
+
+  let output = normalized;
+  while (output.length > 1 && ctx.measureText(`${output}…`).width > maxWidth) {
+    output = output.slice(0, -1);
+  }
+  return `${output.trimEnd()}…`;
+}
+
+function wrapText(ctx, text, maxWidth, maxLines = 2) {
+  const normalized = String(text ?? "").trim().replace(/\s+/g, " ");
+  if (!normalized) {
+    return ["-"];
+  }
+
+  const characters = Array.from(normalized);
+  const lines = [];
+  let current = "";
+
+  for (let index = 0; index < characters.length; index += 1) {
+    const candidate = current + characters[index];
+    if (!current || ctx.measureText(candidate).width <= maxWidth) {
+      current = candidate;
+      continue;
+    }
+
+    lines.push(current.trim());
+    current = characters[index].trimStart();
+    if (lines.length === maxLines - 1) {
+      const remainder = characters.slice(index).join("").trim();
+      lines.push(fitTextToWidth(ctx, `${current}${remainder}`.trim(), maxWidth));
+      return lines;
+    }
+  }
+
+  if (current.trim()) {
+    lines.push(current.trim());
+  }
+
+  return lines.slice(0, maxLines);
+}
+
+function getFooterRowLayout(width) {
+  if (width >= 960) {
+    return [3, 3];
+  }
+  if (width >= 640) {
+    return [2, 2, 2];
+  }
+  return [1, 1, 1, 1, 1, 1];
+}
+
+function buildFooterCells(width, items) {
+  const padding = clamp(Math.round(width * 0.022 * DECORATION_SCALE), 8, 12);
+  const gap = clamp(Math.round(width * 0.014 * DECORATION_SCALE), 5, 8);
+  const rowLayout = getFooterRowLayout(width);
+  const rows = [];
+  let cursor = 0;
+
+  for (const count of rowLayout) {
+    const rowItems = items.slice(cursor, cursor + count);
+    if (rowItems.length === 0) {
+      break;
+    }
+    rows.push(rowItems);
+    cursor += count;
+  }
+
+  const labelFontSize = clamp(Math.round(width * 0.014 * DECORATION_SCALE), 10, 11);
+  const valueFontSize = clamp(Math.round(width * 0.018 * DECORATION_SCALE), 11, 14);
+  const valueLineHeight = Math.round(valueFontSize * 1.24);
+  const cellHeight = clamp(labelFontSize + valueLineHeight * 2 + 14, 38, 46);
+  const footerHeight = padding * 2 + rows.length * cellHeight + (rows.length - 1) * gap;
+  const cells = [];
+
+  rows.forEach((rowItems, rowIndex) => {
+    const rowWidth = width - padding * 2 - gap * (rowItems.length - 1);
+    const cellWidth = Math.floor(rowWidth / rowItems.length);
+    const rowY = padding + rowIndex * (cellHeight + gap);
+    let rowX = padding;
+
+    rowItems.forEach((item, itemIndex) => {
+      const isLast = itemIndex === rowItems.length - 1;
+      const currentWidth = isLast ? width - padding - rowX : cellWidth;
+      cells.push({
+        x: rowX,
+        y: rowY,
+        width: currentWidth,
+        height: cellHeight,
+        ...item,
+      });
+      rowX += currentWidth + gap;
+    });
+  });
+
+  return {
+    footerHeight,
+    labelFontSize,
+    valueFontSize,
+    valueLineHeight,
+    cells,
+  };
+}
+
+function buildHeaderLayout(width) {
+  const paddingX = clamp(Math.round(width * 0.03 * DECORATION_SCALE), 9, 15);
+  const titleFontSize = clamp(Math.round(width * 0.03 * DECORATION_SCALE), 11, 15);
+  const subFontSize = clamp(Math.round(width * 0.0125 * DECORATION_SCALE), 8, 9);
+  const headerHeight = clamp(Math.round(width * 0.11 * DECORATION_SCALE), 32, 46);
+
+  return {
+    paddingX,
+    titleFontSize,
+    subFontSize,
+    headerHeight,
+  };
+}
+
+function drawDecorationPattern(ctx, width, height, yOffset = 0) {
+  const majorStep = clamp(Math.round(width * 0.08), 28, 56);
+  const minorStep = Math.max(12, Math.round(majorStep / 2));
+
+  ctx.save();
+  ctx.translate(0, yOffset);
+
+  ctx.strokeStyle = DECORATION_GRID;
+  ctx.lineWidth = 1;
+  for (let x = minorStep; x < width; x += minorStep) {
+    ctx.beginPath();
+    ctx.moveTo(x + 0.5, 0);
+    ctx.lineTo(x + 0.5, height);
+    ctx.stroke();
+  }
+  for (let y = minorStep; y < height; y += minorStep) {
+    ctx.beginPath();
+    ctx.moveTo(0, y + 0.5);
+    ctx.lineTo(width, y + 0.5);
+    ctx.stroke();
+  }
+
+  ctx.strokeStyle = DECORATION_GRID_BOLD;
+  for (let x = majorStep; x < width; x += majorStep) {
+    ctx.beginPath();
+    ctx.moveTo(x + 0.5, 0);
+    ctx.lineTo(x + 0.5, height);
+    ctx.stroke();
+  }
+
+  ctx.beginPath();
+  ctx.moveTo(width * 0.72, 0);
+  ctx.quadraticCurveTo(width * 0.98, height * 0.18, width * 0.86, height);
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+function drawHeaderBar(ctx, width, header) {
+  const headerGradient = ctx.createLinearGradient(0, 0, width, header.headerHeight);
+  headerGradient.addColorStop(0, DECORATION_BG_START);
+  headerGradient.addColorStop(1, DECORATION_BG_END);
+  ctx.fillStyle = headerGradient;
+  ctx.fillRect(0, 0, width, header.headerHeight);
+  drawDecorationPattern(ctx, width, header.headerHeight);
+
+  const accentGradient = ctx.createLinearGradient(0, 0, width, 0);
+  accentGradient.addColorStop(0, "rgba(255,255,255,0.72)");
+  accentGradient.addColorStop(1, "rgba(255,255,255,0)");
+  ctx.fillStyle = accentGradient;
+  ctx.fillRect(0, 0, width, 1);
+
+  ctx.fillStyle = "rgba(112, 170, 212, 0.18)";
+  ctx.beginPath();
+  ctx.arc(width - header.paddingX - 10, header.headerHeight / 2, 17, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = DECORATION_TEXT_MUTED;
+  ctx.textBaseline = "top";
+  ctx.font = `700 ${header.subFontSize}px "${FOOTER_FONT_FAMILY}"`;
+  ctx.fillText("K-SATTIE SYSTEM", header.paddingX, 5);
+
+  ctx.fillStyle = DECORATION_TEXT;
+  ctx.font = `700 ${header.titleFontSize}px "${FOOTER_FONT_FAMILY}"`;
+  ctx.fillText("K-Sattie Image Hub", header.paddingX, 14);
+
+  ctx.strokeStyle = DECORATION_BORDER;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(0, header.headerHeight - 0.5);
+  ctx.lineTo(width, header.headerHeight - 0.5);
+  ctx.stroke();
+}
+
+function drawFooterCell(ctx, cell, labelFontSize, valueFontSize, valueLineHeight) {
+  drawRoundedRect(ctx, cell.x, cell.y, cell.width, cell.height, 7);
+  ctx.fillStyle = DECORATION_CELL_BG;
+  ctx.fill();
+  ctx.strokeStyle = DECORATION_BORDER;
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  const contentX = cell.x + 8;
+  const labelY = cell.y + 6;
+  const valueY = labelY + labelFontSize + 5;
+  const contentWidth = cell.width - 16;
+
+  ctx.textBaseline = "top";
+  ctx.fillStyle = DECORATION_TEXT_MUTED;
+  ctx.font = `700 ${labelFontSize}px "${FOOTER_FONT_FAMILY}"`;
+  ctx.fillText(cell.label, contentX, labelY);
+
+  ctx.fillStyle = DECORATION_TEXT;
+  ctx.font = `700 ${valueFontSize}px "${FOOTER_FONT_FAMILY}"`;
+  const lines = wrapText(ctx, cell.value, contentWidth, 2);
+  lines.forEach((line, index) => {
+    ctx.fillText(line, contentX, valueY + index * valueLineHeight);
+  });
+}
+
+function normalizeFooterValue(value) {
+  const normalized = String(value ?? "").trim();
+  return normalized || "N/A";
 }
 
 function getChannelCount(colorType) {
@@ -546,6 +837,53 @@ export function writeSarImage(filePath, width, height) {
     return [value, value, value];
   });
   fs.writeFileSync(filePath, png);
+}
+
+export async function appendImageMetadataFooter(filePath, metadata) {
+  ensureFooterFonts();
+
+  const baseImage = await loadImage(filePath);
+  const header = buildHeaderLayout(baseImage.width);
+  const footerItems = [
+    { label: "Satellite", value: normalizeFooterValue(metadata?.satellite) },
+    { label: "Mission Name", value: normalizeFooterValue(metadata?.missionName) },
+    { label: "AOI Name", value: normalizeFooterValue(metadata?.aoiName) },
+    { label: "Lat/Lon", value: normalizeFooterValue(metadata?.latLon) },
+    { label: "Ground Station", value: normalizeFooterValue(metadata?.groundStation) },
+    { label: "Requestor", value: normalizeFooterValue(metadata?.requestor) },
+  ];
+  const footer = buildFooterCells(baseImage.width, footerItems);
+  const canvas = createCanvas(baseImage.width, header.headerHeight + baseImage.height + footer.footerHeight);
+  const ctx = canvas.getContext("2d");
+
+  ctx.fillStyle = "#02060b";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  drawHeaderBar(ctx, canvas.width, header);
+  ctx.drawImage(baseImage, 0, header.headerHeight, baseImage.width, baseImage.height);
+
+  const footerTop = header.headerHeight + baseImage.height;
+  const footerGradient = ctx.createLinearGradient(0, footerTop, 0, canvas.height);
+  footerGradient.addColorStop(0, DECORATION_BG_START);
+  footerGradient.addColorStop(1, DECORATION_BG_END);
+  ctx.fillStyle = footerGradient;
+  ctx.fillRect(0, footerTop, canvas.width, footer.footerHeight);
+  drawDecorationPattern(ctx, canvas.width, footer.footerHeight, footerTop);
+
+  ctx.strokeStyle = DECORATION_BORDER;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(0, footerTop + 0.5);
+  ctx.lineTo(canvas.width, footerTop + 0.5);
+  ctx.stroke();
+
+  ctx.save();
+  ctx.translate(0, footerTop);
+  footer.cells.forEach((cell) => {
+    drawFooterCell(ctx, cell, footer.labelFontSize, footer.valueFontSize, footer.valueLineHeight);
+  });
+  ctx.restore();
+
+  fs.writeFileSync(filePath, canvas.toBuffer("image/png"));
 }
 
 export function clearGeneratedImages() {

@@ -97,13 +97,18 @@ export function App() {
           <NavbarGroup align="left" className="topbar__brand">
             <NavbarHeading>
               <NavLink to="/dashboard" className="brand-title" end>
-                <Icon icon="satellite" />
-                <span>K-Sattie Image Hub</span>
+                <span className="brand-mark" aria-hidden="true">
+                  <Icon icon="satellite" />
+                </span>
+                <span className="brand-copy">
+                  <span className="brand-kicker">Operations Console</span>
+                  <span className="brand-name">K-Sattie Image Hub</span>
+                </span>
               </NavLink>
             </NavbarHeading>
             <NavbarDivider />
             <Tag minimal round large>
-              Palantir BlueprintJS porting
+              BlueprintJS
             </Tag>
           </NavbarGroup>
           <NavbarGroup align="right" className="topbar__actions">
@@ -147,7 +152,6 @@ export function App() {
                     <Icon icon="dashboard" />
                     <span>Dashboard</span>
                   </span>
-                  <span className="rail-link__meta">health, KPI, baseline summary</span>
                 </NavLink>
                 {canAccessSatellites ? (
                   <NavLink
@@ -158,7 +162,7 @@ export function App() {
                       <Icon icon="satellite" />
                       <span>Satellites</span>
                     </span>
-                    <span className="rail-link__meta">satellite, station, requestor resources</span>
+                    <span className="rail-link__meta">위성/기지국/요청자를 관리한다</span>
                   </NavLink>
                 ) : null}
                 <NavLink
@@ -169,7 +173,7 @@ export function App() {
                     <Icon icon="globe-network" />
                     <span>Orbit Track</span>
                   </span>
-                  <span className="rail-link__meta">korean satellite orbit browser and map</span>
+                  <span className="rail-link__meta">대한민국 위성 궤도를 추적한다</span>
                 </NavLink>
                 <NavLink
                   to="/performance"
@@ -179,7 +183,6 @@ export function App() {
                     <Icon icon="timeline-area-chart" />
                     <span>Performance</span>
                   </span>
-                  <span className="rail-link__meta">satellite imaging performance statistics</span>
                 </NavLink>
                 <NavLink
                   to="/payload-monitoring"
@@ -187,24 +190,21 @@ export function App() {
                 >
                   <span className="rail-link__title">
                     <Icon icon="data-connection" />
-                    <span>Payload Monitoring</span>
+                    <span>API Call Logs</span>
                   </span>
-                  <span className="rail-link__meta">external payload monitoring and api call logs</span>
                 </NavLink>
                 {canSeeOperationsGroup ? (
                   <div className={`rail-group ${operationsOpen ? "is-open" : ""} ${operationsActive ? "is-active" : ""}`}>
                     <button
                       type="button"
-                      className="rail-group__trigger"
+                      className={`rail-group__trigger ${operationsOpen || operationsActive ? "is-active" : ""}`}
+                      aria-expanded={operationsOpen}
                       onClick={() => setOperationsOpen((current) => !current)}
                     >
                       <span className="rail-group__copy">
                         <span className="rail-link__title">
                           <Icon icon="pulse" />
                           <span>Self Diagnostics</span>
-                        </span>
-                        <span className="rail-link__meta">
-                          uplink, command monitor, scenario regression
                         </span>
                       </span>
                       <span className="rail-group__chevron">{operationsOpen ? "▾" : "▸"}</span>
@@ -218,9 +218,9 @@ export function App() {
                           >
                             <span className="rail-link__title">
                               <Icon icon="send-to-graph" />
-                              <span>Send A Uplink</span>
+                              <span>Send a Uplink</span>
                             </span>
-                            <span className="rail-link__meta">tasking form and presets</span>
+                            <span className="rail-link__meta">업링크 명령을 전송한다</span>
                           </NavLink>
                         ) : null}
                         {canRunScenarios ? (
@@ -230,9 +230,8 @@ export function App() {
                           >
                             <span className="rail-link__title">
                               <Icon icon="projects" />
-                              <span>Multi Payload</span>
+                              <span>Multi-Scenario</span>
                             </span>
-                            <span className="rail-link__meta">scenario catalog and regression</span>
                           </NavLink>
                         ) : null}
                         <NavLink
@@ -243,7 +242,6 @@ export function App() {
                             <Icon icon="search-template" />
                             <span>Commands Monitor</span>
                           </span>
-                          <span className="rail-link__meta">state polling and downloads</span>
                         </NavLink>
                       </div>
                     ) : null}
