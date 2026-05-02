@@ -1,0 +1,131 @@
+{
+  "common": {
+    "loading": "Loading",
+    "close": "Close",
+    "confirm": "Confirm",
+    "refresh": "Refresh",
+    "none": "(none)",
+    "notReady": "Not Ready",
+    "noData": "No data."
+  },
+  "app": {
+    "brand": {
+      "kicker": "Operations Console",
+      "name": "K-Sattie Image Hub"
+    },
+    "role": {
+      "admin": "Admin",
+      "operator": "Operator",
+      "requestor": "Requestor"
+    },
+    "language": {
+      "label": "Language",
+      "ko": "Korean",
+      "en": "English",
+      "switch": "Switch to English"
+    },
+    "dialog": {
+      "title": "Current Porting Status",
+      "items": {
+        "api": "Added the frontend types and API layer connected to the `/api/sattie/*` backend.",
+        "routes": "Reorganized the routes into Dashboard, Satellites, Orbit Track, Performance, Uplink, Commands, and Scenarios.",
+        "roles": "Applied the mock role mode (`admin`, `operator`, `requestor`) to the header and menu access."
+      },
+      "docsTitle": "Open API Documents",
+      "docsHelp": "After reviewing the structure notes, you can jump straight to the documentation screens.",
+      "swagger": "Swagger Docs",
+      "redoc": "ReDoc"
+    },
+    "nav": {
+      "consoleMap": "Console Map",
+      "router": "Router",
+      "primary": "Primary Navigation",
+      "dashboard": "Dashboard",
+      "orbitTrack": "Orbit Track",
+      "orbitTrackMeta": "Track Korean satellite orbits",
+      "satellites": "Satellites",
+      "satellitesMeta": "Manage satellites, ground stations, and requestors",
+      "performance": "Performance",
+      "payloadMonitoring": "API Call Logs",
+      "selfDiagnostics": "Self Diagnostics",
+      "uplink": "Send a Uplink",
+      "uplinkMeta": "Send an uplink command",
+      "scenarios": "Multi-Scenario",
+      "commands": "Commands Monitor"
+    },
+    "runtime": {
+      "title": "Runtime Snapshot",
+      "apiTag": "API",
+      "loading": "Loading bootstrap",
+      "service": "Service",
+      "db": "DB",
+      "commands": "Commands",
+      "migrated": "This shell has been migrated to the `/api/sattie/*` type and route structure.",
+      "operatorRestricted": "Operator mode: the Satellites menu and management actions are disabled.",
+      "requestorRestricted": "Requestor mode: only the Dashboard / Performance / Commands read flow is available."
+    },
+    "topbar": {
+      "dark": "Dark",
+      "structure": "Structure Notes",
+      "loading": "Loading application data"
+    }
+  },
+  "dashboard": {
+    "eyebrow": "Dashboard",
+    "title": "K-Sattie Image Hub",
+    "description": "Simulates archiving satellite-received imagery to disk and generating download links plus quick-view thumbnails. The screen consolidates system status, key API quick checks, command KPIs, and completed links in one place.",
+    "heroTag": "K-Sattie",
+    "heroAlt": "K-Sattie legacy system brochure",
+    "quickCheckTitle": "K-Sattie Image Hub",
+    "quickCheckTag": "Quick Check",
+    "healthCheck": "Health Check",
+    "healthIdle": "No checks executed yet.",
+    "healthStatus": "{status} - {payload}",
+    "healthLoading": "Loading dashboard",
+    "metrics": {
+      "satellites": "Satellites",
+      "configuration": "configuration",
+      "groundStations": "Ground Stations",
+      "requestors": "requestors {count}",
+      "uplinkCommands": "Uplink Commands",
+      "commands": "commands",
+      "downlinkReady": "Downlink Ready",
+      "completed": "completed",
+      "failed": "Failed",
+      "attention": "attention"
+    },
+    "orbitPreview": {
+      "title": "Orbit Track Map",
+      "koreanSatellites": "{count} Korean satellites",
+      "snapshot": "Read only Orbit Track snapshot",
+      "openFull": "Click to open full Orbit Track"
+    },
+    "distribution": {
+      "title": "Command State Distribution",
+      "tag": "Runtime",
+      "accessingAoi": "Accessing AOI"
+    },
+    "completedLinks": {
+      "title": "Recent Completed Image Links",
+      "summary": "Total {total} commands | Downlink Ready {ready} | Failed {failed} | In Progress {inProgress}",
+      "table": {
+        "commandId": "Command ID",
+        "satelliteName": "Satellite Name",
+        "imageCreatedAt": "Image Created At (KST)",
+        "missionName": "Mission Name",
+        "aoiName": "AOI Name",
+        "groundStation": "Ground Station",
+        "requestorId": "Requestor ID",
+        "state": "State",
+        "downlink": "Downlink"
+      },
+      "download": "Download",
+      "thumbnailAlt": "downlink thumbnail"
+    }
+  },
+  "errors": {
+    "bootstrapLoadFailed": "Sattie bootstrap load failed",
+    "dashboardRefreshFailed": "Dashboard refresh failed",
+    "healthCheckFailed": "Health check failed"
+  }
+}

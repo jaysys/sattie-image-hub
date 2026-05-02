@@ -1,0 +1,131 @@
+{
+  "common": {
+    "loading": "불러오는 중",
+    "close": "닫기",
+    "confirm": "확인",
+    "refresh": "새로고침",
+    "none": "(없음)",
+    "notReady": "준비 전",
+    "noData": "데이터가 없습니다."
+  },
+  "app": {
+    "brand": {
+      "kicker": "Operations Console",
+      "name": "K-Sattie Image Hub"
+    },
+    "role": {
+      "admin": "관리자",
+      "operator": "운영자",
+      "requestor": "요청자"
+    },
+    "language": {
+      "label": "Language",
+      "ko": "한글",
+      "en": "English",
+      "switch": "영문 전환"
+    },
+    "dialog": {
+      "title": "현재 포팅 상태",
+      "items": {
+        "api": "`/api/sattie/*` 백엔드와 연결되는 프런트 타입과 API 계층을 추가했다.",
+        "routes": "라우트는 Dashboard, Satellites, Orbit Track, Performance, Uplink, Commands, Scenarios로 재편했다.",
+        "roles": "mock role mode(`admin`, `operator`, `requestor`)가 헤더와 메뉴 접근에 반영된다."
+      },
+      "docsTitle": "API 문서 바로가기",
+      "docsHelp": "구조 설명 확인 후 바로 문서 화면으로 이동할 수 있다.",
+      "swagger": "Swagger Docs",
+      "redoc": "ReDoc"
+    },
+    "nav": {
+      "consoleMap": "콘솔 맵",
+      "router": "라우터",
+      "primary": "주요 탐색",
+      "dashboard": "대시보드",
+      "orbitTrack": "궤도 추적",
+      "orbitTrackMeta": "대한민국 위성 궤도를 추적한다",
+      "satellites": "위성",
+      "satellitesMeta": "위성/기지국/요청자를 관리한다",
+      "performance": "성능",
+      "payloadMonitoring": "API 호출 로그",
+      "selfDiagnostics": "자체 진단",
+      "uplink": "업링크 전송",
+      "uplinkMeta": "업링크 명령을 전송한다",
+      "scenarios": "멀티 시나리오",
+      "commands": "명령 모니터"
+    },
+    "runtime": {
+      "title": "런타임 스냅샷",
+      "apiTag": "API",
+      "loading": "bootstrap 로딩 중",
+      "service": "서비스",
+      "db": "DB",
+      "commands": "명령",
+      "migrated": "현재 셸은 `/api/sattie/*` 기준 타입과 라우트 구조로 전환됐다.",
+      "operatorRestricted": "Operator 모드: Satellites 메뉴와 관리 액션은 비활성화된다.",
+      "requestorRestricted": "Requestor 모드: Dashboard / Performance / Commands 읽기 흐름만 사용한다."
+    },
+    "topbar": {
+      "dark": "다크",
+      "structure": "구조 설명",
+      "loading": "애플리케이션 데이터를 불러오는 중"
+    }
+  },
+  "dashboard": {
+    "eyebrow": "대시보드",
+    "title": "K-Sattie Image Hub",
+    "description": "위성에서 받은 이미지를 디스크에 아카이빙하고 다운로드 링크와 퀵뷰(썸네일)를 생성하는 기능을 모사한다. 전체 상태 확인, 주요 API quick check, 명령 KPI, 완료 링크를 한 화면에서 확인한다.",
+    "heroTag": "K-Sattie",
+    "heroAlt": "K-Sattie 기존 시스템 브로셔",
+    "quickCheckTitle": "K-Sattie Image Hub",
+    "quickCheckTag": "빠른 점검",
+    "healthCheck": "헬스 체크",
+    "healthIdle": "아직 점검을 실행하지 않았다.",
+    "healthStatus": "{status} - {payload}",
+    "healthLoading": "대시보드 로딩 중",
+    "metrics": {
+      "satellites": "위성",
+      "configuration": "구성",
+      "groundStations": "기지국",
+      "requestors": "요청자 {count}",
+      "uplinkCommands": "업링크 명령",
+      "commands": "명령",
+      "downlinkReady": "다운링크 준비",
+      "completed": "완료",
+      "failed": "실패",
+      "attention": "주의"
+    },
+    "orbitPreview": {
+      "title": "궤도 추적 맵",
+      "koreanSatellites": "대한민국 위성 {count}기",
+      "snapshot": "읽기 전용 Orbit Track 스냅샷",
+      "openFull": "클릭하면 전체 Orbit Track을 연다"
+    },
+    "distribution": {
+      "title": "명령 상태 분포",
+      "tag": "런타임",
+      "accessingAoi": "AOI 접근 중"
+    },
+    "completedLinks": {
+      "title": "최근 완료 이미지 링크",
+      "summary": "총 {total}개 명령 | 다운링크 준비 {ready} | 실패 {failed} | 진행 중 {inProgress}",
+      "table": {
+        "commandId": "명령 ID",
+        "satelliteName": "위성명",
+        "imageCreatedAt": "이미지 생성 시각 (KST)",
+        "missionName": "업무이름",
+        "aoiName": "대상지역명칭",
+        "groundStation": "기지국",
+        "requestorId": "요청자 ID",
+        "state": "상태",
+        "downlink": "다운링크"
+      },
+      "download": "다운로드",
+      "thumbnailAlt": "다운링크 썸네일"
+    }
+  },
+  "errors": {
+    "bootstrapLoadFailed": "Sattie bootstrap 로드 실패",
+    "dashboardRefreshFailed": "대시보드 새로고침 실패",
+    "healthCheckFailed": "헬스 체크 실패"
+  }
+}

@@ -18,6 +18,7 @@ import {
 } from "@blueprintjs/core";
 import { NavLink, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { PanelTitle } from "./components/PanelTitle";
+import { useI18n } from "./i18n";
 import { getSattieBootstrap } from "./lib/sattieApi";
 import { SattieCommandsPage } from "./pages/SattieCommandsPage";
 import { SattieDashboardPage } from "./pages/SattieDashboardPage";
@@ -33,6 +34,7 @@ type MockRole = "admin" | "operator" | "requestor";
 
 export function App() {
   const location = useLocation();
+  const { locale, setLocale, t } = useI18n();
   const [darkMode, setDarkMode] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [bootstrap, setBootstrap] = useState<SattieConsoleBootstrap | null>(null);
@@ -55,7 +57,7 @@ export function App() {
       const data = await getSattieBootstrap();
       setBootstrap(data);
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "Sattie bootstrap load failed");
+      setError(requestError instanceof Error ? requestError.message : t("errors.bootstrapLoadFailed"));
     }
   }
 
@@ -102,14 +104,14 @@ export function App() {
                   <Icon icon="satellite" />
                 </span>
                 <span className="brand-copy">
-                  <span className="brand-kicker">Operations Console</span>
-                  <span className="brand-name">K-Sattie Image Hub</span>
+                  <span className="brand-kicker">{t("app.brand.kicker")}</span>
+                  <span className="brand-name">{t("app.brand.name")}</span>
                 </span>
               </NavLink>
             </NavbarHeading>
             <NavbarDivider />
             <Tag minimal round large>
-              BlueprintJS
+              jhojoo@LG
             </Tag>
           </NavbarGroup>
           <NavbarGroup align="right" className="topbar__actions">
@@ -119,18 +121,23 @@ export function App() {
               value={role}
               onChange={(event) => setRole(event.target.value as MockRole)}
               options={[
-                { label: "admin", value: "admin" },
-                { label: "operator", value: "operator" },
-                { label: "requestor", value: "requestor" },
+                { label: t("app.role.admin"), value: "admin" },
+                { label: t("app.role.operator"), value: "operator" },
+                { label: t("app.role.requestor"), value: "requestor" },
               ]}
             />
             <Switch
+              checked={locale === "en"}
+              label={`${t("app.language.ko")} / ${t("app.language.en")}`}
+              onChange={() => setLocale(locale === "ko" ? "en" : "ko")}
+            />
+            <Switch
               checked={darkMode}
-              label="Dark"
+              label={t("app.topbar.dark")}
               onChange={() => setDarkMode((current) => !current)}
             />
             <Button icon="layout-auto" intent="primary" onClick={() => setDialogOpen(true)}>
-              구조 설명
+              {t("app.topbar.structure")}
             </Button>
           </NavbarGroup>
         </Navbar>
@@ -139,19 +146,19 @@ export function App() {
           <aside className="sidebar-stack">
             <Card className="panel panel--sidebar">
               <div className="panel__title-row">
-                <PanelTitle icon="map">Console Map</PanelTitle>
+                <PanelTitle icon="map">{t("app.nav.consoleMap")}</PanelTitle>
                 <Tag minimal intent="primary">
-                  Router
+                  {t("app.nav.router")}
                 </Tag>
               </div>
-              <nav className="rail-links" aria-label="Primary">
+              <nav className="rail-links" aria-label={t("app.nav.primary")}>
                 <NavLink
                   to="/dashboard"
                   className={({ isActive }) => `rail-link ${isActive ? "is-active" : ""}`}
                 >
                   <span className="rail-link__title">
                     <Icon icon="dashboard" />
-                    <span>Dashboard</span>
+                    <span>{t("app.nav.dashboard")}</span>
                   </span>
                 </NavLink>
                 <NavLink
@@ -160,9 +167,9 @@ export function App() {
                 >
                   <span className="rail-link__title">
                     <Icon icon="globe-network" />
-                    <span>Orbit Track</span>
+                    <span>{t("app.nav.orbitTrack")}</span>
                   </span>
-                  <span className="rail-link__meta">대한민국 위성 궤도를 추적한다</span>
+                  <span className="rail-link__meta">{t("app.nav.orbitTrackMeta")}</span>
                 </NavLink>
                 {canAccessSatellites ? (
                   <NavLink
@@ -171,9 +178,9 @@ export function App() {
                   >
                     <span className="rail-link__title">
                       <Icon icon="satellite" />
-                      <span>Satellites</span>
+                      <span>{t("app.nav.satellites")}</span>
                     </span>
-                    <span className="rail-link__meta">위성/기지국/요청자를 관리한다</span>
+                    <span className="rail-link__meta">{t("app.nav.satellitesMeta")}</span>
                   </NavLink>
                 ) : null}
                 <NavLink
@@ -182,7 +189,7 @@ export function App() {
                 >
                   <span className="rail-link__title">
                     <Icon icon="timeline-area-chart" />
-                    <span>Performance</span>
+                    <span>{t("app.nav.performance")}</span>
                   </span>
                 </NavLink>
                 <NavLink
@@ -191,7 +198,7 @@ export function App() {
                 >
                   <span className="rail-link__title">
                     <Icon icon="data-connection" />
-                    <span>API Call Logs</span>
+                    <span>{t("app.nav.payloadMonitoring")}</span>
                   </span>
                 </NavLink>
                 {canSeeOperationsGroup ? (
@@ -205,7 +212,7 @@ export function App() {
                       <span className="rail-group__copy">
                         <span className="rail-link__title">
                           <Icon icon="pulse" />
-                          <span>Self Diagnostics</span>
+                          <span>{t("app.nav.selfDiagnostics")}</span>
                         </span>
                       </span>
                       <span className="rail-group__chevron">{operationsOpen ? "▾" : "▸"}</span>
@@ -219,9 +226,9 @@ export function App() {
                           >
                             <span className="rail-link__title">
                               <Icon icon="send-to-graph" />
-                              <span>Send a Uplink</span>
+                              <span>{t("app.nav.uplink")}</span>
                             </span>
-                            <span className="rail-link__meta">업링크 명령을 전송한다</span>
+                            <span className="rail-link__meta">{t("app.nav.uplinkMeta")}</span>
                           </NavLink>
                         ) : null}
                         {canRunScenarios ? (
@@ -231,7 +238,7 @@ export function App() {
                           >
                             <span className="rail-link__title">
                               <Icon icon="projects" />
-                              <span>Multi-Scenario</span>
+                              <span>{t("app.nav.scenarios")}</span>
                             </span>
                           </NavLink>
                         ) : null}
@@ -241,7 +248,7 @@ export function App() {
                         >
                           <span className="rail-link__title">
                             <Icon icon="search-template" />
-                            <span>Commands Monitor</span>
+                            <span>{t("app.nav.commands")}</span>
                           </span>
                         </NavLink>
                       </div>
@@ -253,15 +260,15 @@ export function App() {
 
             <Card className="panel panel--sidebar">
               <div className="panel__title-row">
-                <PanelTitle icon="time">Runtime Snapshot</PanelTitle>
+                <PanelTitle icon="time">{t("app.runtime.title")}</PanelTitle>
                 <Tag minimal intent="success">
-                  API
+                  {t("app.runtime.apiTag")}
                 </Tag>
               </div>
               {loading ? (
                 <div className="panel-loading">
                   <Spinner size={22} />
-                  <span>bootstrap loading</span>
+                  <span>{t("app.runtime.loading")}</span>
                 </div>
               ) : error ? (
                 <Callout icon="error" intent="danger">
@@ -280,26 +287,26 @@ export function App() {
                   </div>
                   <div className="console-facts">
                     <div className="console-facts__item">
-                      <span>Service</span>
+                      <span>{t("app.runtime.service")}</span>
                       <strong>{bootstrap.health.service}</strong>
                     </div>
                     <div className="console-facts__item">
-                      <span>DB</span>
+                      <span>{t("app.runtime.db")}</span>
                       <strong>{bootstrap.health.sqliteVersion}</strong>
                     </div>
                     <div className="console-facts__item">
-                      <span>Commands</span>
+                      <span>{t("app.runtime.commands")}</span>
                       <strong>{bootstrap.health.counts.commands}</strong>
                     </div>
                   </div>
                   <Callout icon="data-connection" intent="primary">
-                    현재 셸은 `/api/sattie/*` 기준 타입과 라우트 구조로 전환됐다.
+                    {t("app.runtime.migrated")}
                   </Callout>
                   {!canAccessSatellites ? (
                     <Callout icon="lock" intent="warning">
                       {role === "operator"
-                        ? "Operator 모드: Satellites 메뉴와 관리 액션은 비활성화된다."
-                        : "Requestor 모드: Dashboard / Performance / Commands 읽기 흐름만 사용한다."}
+                        ? t("app.runtime.operatorRestricted")
+                        : t("app.runtime.requestorRestricted")}
                     </Callout>
                   ) : null}
                 </>
@@ -312,7 +319,7 @@ export function App() {
               <Card className="panel panel--loading">
                 <div className="panel-loading">
                   <Spinner />
-                  <span>애플리케이션 데이터를 불러오는 중</span>
+                  <span>{t("app.topbar.loading")}</span>
                 </div>
               </Card>
             ) : error ? (
@@ -347,7 +354,12 @@ export function App() {
                 />
                 <Route
                   path="/orbit-track"
-                  element={<SattieOrbitTrackPage satellites={bootstrap.satellites} />}
+                  element={
+                    <SattieOrbitTrackPage
+                      satellites={bootstrap.satellites}
+                      canSendUplink={canSendUplink}
+                    />
+                  }
                 />
                 <Route
                   path="/performance"
@@ -406,18 +418,18 @@ export function App() {
         icon="dashboard"
         isOpen={dialogOpen}
         onClose={() => setDialogOpen(false)}
-        title="현재 포팅 상태"
+        title={t("app.dialog.title")}
       >
         <div className={Classes.DIALOG_BODY}>
           <ol className="dialog-list">
-            <li>`/api/sattie/*` 백엔드와 연결되는 프런트 타입과 API 계층을 추가했다.</li>
-            <li>라우트는 Dashboard, Satellites, Orbit Track, Performance, Uplink, Commands, Scenarios로 재편했다.</li>
-            <li>mock role mode(`admin`, `operator`, `requestor`)가 헤더와 메뉴 접근에 반영된다.</li>
+            <li>{t("app.dialog.items.api")}</li>
+            <li>{t("app.dialog.items.routes")}</li>
+            <li>{t("app.dialog.items.roles")}</li>
           </ol>
           <div className="dialog-docs">
             <div className="dialog-docs__header">
-              <strong>API 문서 바로가기</strong>
-              <span className="subtle-text">구조 설명 확인 후 바로 문서 화면으로 이동할 수 있다.</span>
+              <strong>{t("app.dialog.docsTitle")}</strong>
+              <span className="subtle-text">{t("app.dialog.docsHelp")}</span>
             </div>
             <div className="dialog-docs__actions">
               <AnchorButton
@@ -427,7 +439,7 @@ export function App() {
                 icon="document-open"
                 intent="primary"
               >
-                Swagger Docs
+                {t("app.dialog.swagger")}
               </AnchorButton>
               <AnchorButton
                 href="/api/sattie/redoc"
@@ -435,16 +447,16 @@ export function App() {
                 rel="noreferrer"
                 icon="manual"
               >
-                ReDoc
+                {t("app.dialog.redoc")}
               </AnchorButton>
             </div>
           </div>
         </div>
         <div className={Classes.DIALOG_FOOTER}>
           <div className={Classes.DIALOG_FOOTER_ACTIONS}>
-            <Button onClick={() => setDialogOpen(false)}>닫기</Button>
+            <Button onClick={() => setDialogOpen(false)}>{t("common.close")}</Button>
             <Button intent="primary" onClick={() => setDialogOpen(false)}>
-              확인
+              {t("common.confirm")}
             </Button>
           </div>
         </div>

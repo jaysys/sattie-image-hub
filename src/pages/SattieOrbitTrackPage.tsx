@@ -1,5 +1,6 @@
 import { Button, Callout, Card, Dialog, InputGroup, Tag } from "@blueprintjs/core";
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { PanelTitle } from "../components/PanelTitle";
 import { SattieOrbitTrackCanvas } from "../components/SattieOrbitTrackCanvas";
 import { type OrbitTrackClass } from "../lib/orbitTrack";
@@ -7,6 +8,7 @@ import { useOrbitTrackScene } from "../hooks/useOrbitTrackScene";
 import type { Satellite } from "../sattie-types";
 
 interface SattieOrbitTrackPageProps {
+  canSendUplink?: boolean;
   satellites: Satellite[];
 }
 
@@ -45,7 +47,8 @@ function getSourceTagIntent(source: string | null) {
   return "success" as const;
 }
 
-export function SattieOrbitTrackPage({ satellites }: SattieOrbitTrackPageProps) {
+export function SattieOrbitTrackPage({ satellites, canSendUplink = false }: SattieOrbitTrackPageProps) {
+  const navigate = useNavigate();
   const [orbitFilter, setOrbitFilter] = useState<"all" | OrbitTrackClass>("all");
   const [showGeoTracks, setShowGeoTracks] = useState(true);
   const [selectedNorad, setSelectedNorad] = useState<string | null>(null);
@@ -99,6 +102,15 @@ export function SattieOrbitTrackPage({ satellites }: SattieOrbitTrackPageProps) 
   function handleBrowserSelect(norad: string) {
     setSelectedNorad(norad);
     setBrowserOpen(false);
+  }
+
+  function handleNavigateToUplink() {
+    if (!selectedEntry?.satelliteId || !canSendUplink) {
+      return;
+    }
+
+    const query = new URLSearchParams({ satelliteId: selectedEntry.satelliteId });
+    navigate(`/uplink?${query.toString()}`);
   }
 
   const filteredEntries = browserFilteredEntries;
@@ -233,6 +245,13 @@ export function SattieOrbitTrackPage({ satellites }: SattieOrbitTrackPageProps) 
                 <span>
                   {selectedEntry.objectType ?? "-"} · {selectedEntry.objectId ?? "-"} · {selectedEntry.launchDate ?? "launch unknown"}
                 </span>
+                {canSendUplink ? (
+                  <div className="button-cluster">
+                    <Button icon="send-to-graph" intent="primary" onClick={handleNavigateToUplink}>
+                      Send a Uplink
+                    </Button>
+                  </div>
+                ) : null}
               </div>
             </Callout>
           ) : (

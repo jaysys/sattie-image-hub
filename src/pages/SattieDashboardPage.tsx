@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { PanelTitle } from "../components/PanelTitle";
 import { SattieOrbitTrackCanvas } from "../components/SattieOrbitTrackCanvas";
 import { useOrbitTrackScene } from "../hooks/useOrbitTrackScene";
+import { useI18n } from "../i18n";
 import { getCommands, getGroundStations, getSattieHealth } from "../lib/sattieApi";
 import type { CommandState, CommandStatus, SattieConsoleBootstrap, SattieHealthResponse } from "../sattie-types";
 
@@ -14,7 +15,7 @@ interface SattieDashboardPageProps {
   darkMode: boolean;
 }
 
-function formatKstDateTime(value: string | null | undefined) {
+function formatKstDateTime(value: string | null | undefined, locale: string) {
   if (!value) {
     return "-";
   }
@@ -24,7 +25,7 @@ function formatKstDateTime(value: string | null | undefined) {
     return value;
   }
 
-  return new Intl.DateTimeFormat("ko-KR", {
+  return new Intl.DateTimeFormat(locale === "ko" ? "ko-KR" : "en-US", {
     timeZone: "Asia/Seoul",
     year: "numeric",
     month: "2-digit",
@@ -52,13 +53,15 @@ function getIntent(state: CommandState) {
 
 export function SattieDashboardPage({ bootstrap, darkMode }: SattieDashboardPageProps) {
   const navigate = useNavigate();
+  const { locale, t } = useI18n();
   const [health, setHealth] = useState<SattieHealthResponse>(bootstrap.health);
   const [commands, setCommands] = useState<CommandStatus[]>([]);
   const [groundStationCount, setGroundStationCount] = useState(bootstrap.groundStations.length);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [healthMessage, setHealthMessage] = useState("No checks executed.");
+  const [lastHealthStatus, setLastHealthStatus] = useState<number | null>(null);
+  const [lastHealthPayload, setLastHealthPayload] = useState<SattieHealthResponse | null>(null);
   const [heroOpen, setHeroOpen] = useState(false);
   const { visibleEntries, visibleLeoBackdropPoints, summary } = useOrbitTrackScene(bootstrap.satellites);
 
@@ -90,7 +93,7 @@ export function SattieDashboardPage({ bootstrap, darkMode }: SattieDashboardPage
   const stateRows: Array<{ label: string; value: number; intent: "primary" | "success" | "warning" | "danger" }> = [
     { label: "ACKED", value: commandSummary.acked, intent: "primary" },
     { label: "QUEUED", value: commandSummary.queued, intent: "primary" },
-    { label: "Accessing AOI", value: commandSummary.accessingAoi, intent: "primary" },
+    { label: t("dashboard.distribution.accessingAoi"), value: commandSummary.accessingAoi, intent: "primary" },
     { label: "CAPTURING", value: commandSummary.capturing, intent: "warning" },
     { label: "DOWNLINK_READY", value: commandSummary.ready, intent: "success" },
     { label: "FAILED", value: commandSummary.failed, intent: "danger" },
@@ -107,10 +110,26 @@ export function SattieDashboardPage({ bootstrap, darkMode }: SattieDashboardPage
     const inProgress = completedCommands.filter((command) =>
       ["QUEUED", "ACKED", "ACCESSING_AOI", "CAPTURING"].includes(command.state),
     ).length;
-    return `Total ${completedCommands.length} commands | Downlink Ready ${ready} | Failed ${failed} | In Progress ${inProgress}`;
-  }, [completedCommands]);
+    return t("dashboard.completedLinks.summary", {
+      total: completedCommands.length,
+      ready,
+      failed,
+      inProgress,
+    });
+  }, [completedCommands, t]);
 
   const latestCompletedCommands = useMemo(() => completedCommands.slice(0, 10), [completedCommands]);
+
+  const healthMessage = useMemo(() => {
+    if (!lastHealthStatus || !lastHealthPayload) {
+      return t("dashboard.healthIdle");
+    }
+
+    return t("dashboard.healthStatus", {
+      status: lastHealthStatus,
+      payload: JSON.stringify(lastHealthPayload),
+    });
+  }, [lastHealthPayload, lastHealthStatus, t]);
 
   async function refreshDashboard() {
     const [nextCommands, nextGroundStations] = await Promise.all([
@@ -140,7 +159,7 @@ export function SattieDashboardPage({ bootstrap, darkMode }: SattieDashboardPage
         await refreshDashboard();
       } catch (requestError) {
         if (!cancelled) {
-          setError(requestError instanceof Error ? requestError.message : "Dashboard refresh failed");
+          setError(requestError instanceof Error ? requestError.message : t("errors.dashboardRefreshFailed"));
         }
       } finally {
         if (!cancelled) {
@@ -162,9 +181,10 @@ export function SattieDashboardPage({ bootstrap, darkMode }: SattieDashboardPage
     try {
       const nextHealth = await getSattieHealth();
       setHealth(nextHealth);
-      setHealthMessage(`${200} - ${JSON.stringify(nextHealth)}`);
+      setLastHealthStatus(200);
+      setLastHealthPayload(nextHealth);
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "Health check failed");
+      setError(requestError instanceof Error ? requestError.message : t("errors.healthCheckFailed"));
     } finally {
       setRefreshing(false);
     }
@@ -174,21 +194,20 @@ export function SattieDashboardPage({ bootstrap, darkMode }: SattieDashboardPage
     <div className="page-stack">
       <section className="page-intro page-intro--dashboard">
         <div className="page-intro__copy">
-          <p className="eyebrow">Dashboard</p>
-          <h1>K-Sattie Image Hub</h1>
+          <p className="eyebrow">{t("dashboard.eyebrow")}</p>
+          <h1>{t("dashboard.title")}</h1>
           <p className="page-copy">
-            위성에서 받은 이미지를 디스크에 아카이빙하고 다운로드링크와 퀵뷰(썸네일)를 생성하는 기능을 모사한다.
-            전체 상태 확인, 주요 API quick check, 명령 KPI, 완료 링크를 한 화면에서 확인한다.
+            {t("dashboard.description")}
           </p>
         </div>
         <Card className="dashboard-hero-card dashboard-hero-card--floating">
           <div className="dashboard-hero-card__head">
             <Tag minimal intent="primary">
-              K-Sattie
+              {t("dashboard.heroTag")}
             </Tag>
           </div>
           <button type="button" className="dashboard-hero-wrap" onClick={() => setHeroOpen(true)}>
-            <img className="dashboard-hero" src={dashboardHeroImage} alt="K-Sattie legacy system brochure" />
+            <img className="dashboard-hero" src={dashboardHeroImage} alt={t("dashboard.heroAlt")} />
           </button>
         </Card>
       </section>
@@ -203,20 +222,20 @@ export function SattieDashboardPage({ bootstrap, darkMode }: SattieDashboardPage
         <div className="dashboard-top-grid__main">
           <Card className="panel dashboard-top-grid__panel">
             <div className="panel__title-row">
-              <PanelTitle icon="home">K-Sattie Image Hub</PanelTitle>
+              <PanelTitle icon="home">{t("dashboard.quickCheckTitle")}</PanelTitle>
               <Tag minimal intent="primary">
-                Quick Check
+                {t("dashboard.quickCheckTag")}
               </Tag>
             </div>
             <div className="button-cluster">
               <Button icon="pulse" intent="primary" loading={refreshing} onClick={() => void handleHealthCheck()}>
-                Health Check
+                {t("dashboard.healthCheck")}
               </Button>
             </div>
             {loading ? (
               <div className="panel-loading">
                 <Spinner size={22} />
-                <span>dashboard loading</span>
+                <span>{t("dashboard.healthLoading")}</span>
               </div>
             ) : (
               <Callout icon="info-sign" intent={health.ok ? "success" : "primary"} className="stack-actions">
@@ -233,11 +252,11 @@ export function SattieDashboardPage({ bootstrap, darkMode }: SattieDashboardPage
             >
               <span className="metric-card__label">
                 <Icon icon="satellite" />
-                <span>Satellites</span>
+                <span>{t("dashboard.metrics.satellites")}</span>
               </span>
               <strong>{health.counts.satellites}</strong>
               <Tag minimal intent="primary">
-                configuration
+                {t("dashboard.metrics.configuration")}
               </Tag>
             </Card>
             <Card
@@ -247,11 +266,11 @@ export function SattieDashboardPage({ bootstrap, darkMode }: SattieDashboardPage
             >
               <span className="metric-card__label">
                 <Icon icon="antenna" />
-                <span>Ground Stations</span>
+                <span>{t("dashboard.metrics.groundStations")}</span>
               </span>
               <strong>{groundStationCount}</strong>
               <Tag minimal intent="warning">
-                requestors {health.counts.requestors}
+                {t("dashboard.metrics.requestors", { count: health.counts.requestors })}
               </Tag>
             </Card>
           </section>
@@ -260,31 +279,31 @@ export function SattieDashboardPage({ bootstrap, darkMode }: SattieDashboardPage
             <Card className="metric-card kpi-nav-card" interactive onClick={() => navigate("/commands")}>
               <span className="metric-card__label">
                 <Icon icon="send-to-graph" />
-                <span>Uplink Commands</span>
+                <span>{t("dashboard.metrics.uplinkCommands")}</span>
               </span>
               <strong>{commandSummary.total}</strong>
               <Tag minimal intent="primary">
-                commands
+                {t("dashboard.metrics.commands")}
               </Tag>
             </Card>
             <Card className="metric-card kpi-nav-card" interactive onClick={() => navigate("/commands")}>
               <span className="metric-card__label">
                 <Icon icon="download" />
-                <span>Downlink Ready</span>
+                <span>{t("dashboard.metrics.downlinkReady")}</span>
               </span>
               <strong>{commandSummary.ready}</strong>
               <Tag minimal intent="success">
-                completed
+                {t("dashboard.metrics.completed")}
               </Tag>
             </Card>
             <Card className="metric-card kpi-nav-card" interactive onClick={() => navigate("/commands")}>
               <span className="metric-card__label">
                 <Icon icon="warning-sign" />
-                <span>Failed</span>
+                <span>{t("dashboard.metrics.failed")}</span>
               </span>
               <strong>{commandSummary.failed}</strong>
               <Tag minimal intent={commandSummary.failed > 0 ? "danger" : "success"}>
-                attention
+                {t("dashboard.metrics.attention")}
               </Tag>
             </Card>
           </section>
@@ -304,9 +323,9 @@ export function SattieDashboardPage({ bootstrap, darkMode }: SattieDashboardPage
           }}
         >
           <div className="panel__title-row">
-            <PanelTitle icon="globe-network">Orbit Track Map</PanelTitle>
+            <PanelTitle icon="globe-network">{t("dashboard.orbitPreview.title")}</PanelTitle>
             <Tag minimal intent="success">
-              {summary.koreanLiveCount} Korean satellites
+              {t("dashboard.orbitPreview.koreanSatellites", { count: summary.koreanLiveCount })}
             </Tag>
           </div>
           <div className="dashboard-orbit-preview-card__canvas">
@@ -322,17 +341,17 @@ export function SattieDashboardPage({ bootstrap, darkMode }: SattieDashboardPage
             />
           </div>
           <div className="dashboard-orbit-preview-card__footer">
-            <span>Read only Orbit Track snapshot</span>
-            <span>Click to open full Orbit Track</span>
+            <span>{t("dashboard.orbitPreview.snapshot")}</span>
+            <span>{t("dashboard.orbitPreview.openFull")}</span>
           </div>
         </Card>
       </section>
 
       <Card className="panel">
         <div className="panel__title-row">
-          <PanelTitle icon="heat-grid">Command State Distribution</PanelTitle>
+          <PanelTitle icon="heat-grid">{t("dashboard.distribution.title")}</PanelTitle>
           <Tag minimal intent="primary">
-            Runtime
+            {t("dashboard.distribution.tag")}
           </Tag>
         </div>
         <div className="distribution-list">
@@ -361,35 +380,35 @@ export function SattieDashboardPage({ bootstrap, darkMode }: SattieDashboardPage
 
       <Card className="panel">
         <div className="panel__title-row">
-          <PanelTitle icon="media">Recent Completed Image Links</PanelTitle>
+          <PanelTitle icon="media">{t("dashboard.completedLinks.title")}</PanelTitle>
           <div className="button-cluster">
             <Tag minimal intent="primary">
               {completedSummary}
             </Tag>
             <Button icon="refresh" onClick={() => void refreshDashboard()} loading={loading}>
-              Refresh
+              {t("common.refresh")}
             </Button>
           </div>
         </div>
         <HTMLTable bordered interactive striped className="data-table">
           <thead>
             <tr>
-              <th>Command ID</th>
-              <th>Satellite Name</th>
-              <th>Image Created At (KST)</th>
-              <th>업무이름</th>
-              <th>대상지역명칭</th>
-              <th>Ground Station</th>
-              <th>Requestor ID</th>
-              <th>State</th>
-              <th>Downlink</th>
+              <th>{t("dashboard.completedLinks.table.commandId")}</th>
+              <th>{t("dashboard.completedLinks.table.satelliteName")}</th>
+              <th>{t("dashboard.completedLinks.table.imageCreatedAt")}</th>
+              <th>{t("dashboard.completedLinks.table.missionName")}</th>
+              <th>{t("dashboard.completedLinks.table.aoiName")}</th>
+              <th>{t("dashboard.completedLinks.table.groundStation")}</th>
+              <th>{t("dashboard.completedLinks.table.requestorId")}</th>
+              <th>{t("dashboard.completedLinks.table.state")}</th>
+              <th>{t("dashboard.completedLinks.table.downlink")}</th>
             </tr>
           </thead>
           <tbody>
             {completedCommands.length === 0 ? (
               <tr>
                 <td colSpan={9} className="subtle-text">
-                  No command data.
+                  {t("common.noData")}
                 </td>
               </tr>
             ) : (
@@ -397,11 +416,11 @@ export function SattieDashboardPage({ bootstrap, darkMode }: SattieDashboardPage
                 <tr key={command.command_id}>
                   <td>{command.command_id}</td>
                   <td>{bootstrap.satellites.find((item) => item.satellite_id === command.satellite_id)?.name ?? command.satellite_id}</td>
-                  <td>{formatKstDateTime(String(command.acquisition_metadata?.captured_at ?? command.updated_at ?? ""))}</td>
-                  <td>{command.mission_name || "(none)"}</td>
-                  <td>{command.aoi_name || "(none)"}</td>
-                  <td>{command.ground_station_name || command.ground_station_id || "(none)"}</td>
-                  <td>{command.requestor_id || "(none)"}</td>
+                  <td>{formatKstDateTime(String(command.acquisition_metadata?.captured_at ?? command.updated_at ?? ""), locale)}</td>
+                  <td>{command.mission_name || t("common.none")}</td>
+                  <td>{command.aoi_name || t("common.none")}</td>
+                  <td>{command.ground_station_name || command.ground_station_id || t("common.none")}</td>
+                  <td>{command.requestor_id || t("common.none")}</td>
                   <td>
                     <Tag minimal intent={getIntent(command.state)}>
                       {command.state}
@@ -414,7 +433,7 @@ export function SattieDashboardPage({ bootstrap, darkMode }: SattieDashboardPage
                           <img
                             className="downlink-thumb"
                             src={command.download_url}
-                            alt="downlink thumbnail"
+                            alt={t("dashboard.completedLinks.thumbnailAlt")}
                             loading="lazy"
                             referrerPolicy="no-referrer"
                             onError={(event) => {
@@ -423,13 +442,13 @@ export function SattieDashboardPage({ bootstrap, darkMode }: SattieDashboardPage
                           />
                         </a>
                         <a href={command.download_url} target="_blank" rel="noreferrer">
-                          Download
+                          {t("dashboard.completedLinks.download")}
                         </a>
                       </div>
                     ) : command.state === "FAILED" ? (
                       <span className="text-danger">FAILED</span>
                     ) : (
-                      <span className="subtle-text">Not Ready</span>
+                      <span className="subtle-text">{t("common.notReady")}</span>
                     )}
                   </td>
                 </tr>
@@ -442,11 +461,11 @@ export function SattieDashboardPage({ bootstrap, darkMode }: SattieDashboardPage
       <Dialog
         isOpen={heroOpen}
         onClose={() => setHeroOpen(false)}
-        title="K-Sattie"
+        title={t("dashboard.heroTag")}
         className={`hero-dialog ${darkMode ? Classes.DARK : ""}`}
       >
         <div className="bp6-dialog-body">
-          <img className="dashboard-hero dashboard-hero-full" src={dashboardHeroImage} alt="K-Sattie legacy system brochure" />
+          <img className="dashboard-hero dashboard-hero-full" src={dashboardHeroImage} alt={t("dashboard.heroAlt")} />
         </div>
       </Dialog>
     </div>

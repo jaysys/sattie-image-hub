@@ -2,7 +2,7 @@ import type { PointerEvent as ReactPointerEvent, WheelEvent as ReactWheelEvent }
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button, Callout, Card, FormGroup, HTMLSelect, InputGroup, Tag, TextArea } from "@blueprintjs/core";
 import { PanelTitle } from "../components/PanelTitle";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { buildExternalMapPreviewUrl, createUplink } from "../lib/sattieApi";
 import type {
   DeliveryMethod,
@@ -777,7 +777,9 @@ export function SattieUplinkPage({
   satellites,
 }: SattieUplinkPageProps) {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const previewFrameRef = useRef<HTMLDivElement | null>(null);
+  const lastAppliedSatelliteIdRef = useRef<string | null>(null);
   const [form, setForm] = useState<UplinkFormState>(() => createInitialForm(satellites, groundStations));
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -832,6 +834,26 @@ export function SattieUplinkPage({
       requestor_id: filteredRequestors[0]?.requestor_id ?? "",
     }));
   }, [filteredRequestors, form.requestor_id]);
+
+  useEffect(() => {
+    const requestedSatelliteId = searchParams.get("satelliteId");
+    if (!requestedSatelliteId) {
+      lastAppliedSatelliteIdRef.current = null;
+      return;
+    }
+
+    if (lastAppliedSatelliteIdRef.current === requestedSatelliteId) {
+      return;
+    }
+
+    const matchedSatellite = satellites.find((item) => item.satellite_id === requestedSatelliteId);
+    if (!matchedSatellite) {
+      return;
+    }
+
+    applyPresetForSatellite(matchedSatellite.satellite_id);
+    lastAppliedSatelliteIdRef.current = matchedSatellite.satellite_id;
+  }, [searchParams, satellites]);
 
   function applyPresetForSatellite(satelliteId: string) {
     const satellite = satellites.find((item) => item.satellite_id === satelliteId);
